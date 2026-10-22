@@ -71,7 +71,7 @@ export function DiscoverExplorer({
               rest of the result set. High engagement only, not raw vanity counts.
             </p>
           </div>
-          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted">
+          <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] text-muted sm:inline">
             source · youtube data api
           </span>
         </div>
@@ -132,7 +132,11 @@ export function DiscoverExplorer({
                 className="w-14 bg-transparent font-mono text-[10px] outline-none"
               />
             </label>
-            <button type="submit" disabled={loading || !youtubeReady} className="btn btn-primary h-9 px-4 text-[11px]">
+            <button
+              type="submit"
+              disabled={loading || !youtubeReady}
+              className="btn btn-primary h-11 w-full px-4 text-[11px] sm:w-auto"
+            >
               {loading ? "Scoring…" : "Find outliers"}
               <Compass size={13} />
             </button>

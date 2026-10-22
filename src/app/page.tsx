@@ -30,7 +30,7 @@ export default function Home() {
       <section className="pt-7 md:pt-10">
         <div className="grid gap-6 lg:grid-cols-[1fr_260px] lg:items-end">
           <div>
-            <h1 className="display max-w-[760px] text-[clamp(2.9rem,7.2vw,5.4rem)]">
+            <h1 className="display max-w-[760px] text-[clamp(2.45rem,11.4vw,5.4rem)]">
               Send the reel.
               <br />
               Get the recipe.

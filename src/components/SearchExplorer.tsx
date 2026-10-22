@@ -95,7 +95,7 @@ export function SearchExplorer({
             {counts.ready} ready · {counts.total} sent · hybrid retrieval over your own reels
           </p>
         </div>
-        <div className="max-w-[560px] text-right font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted">
+        <div className="hidden max-w-[560px] text-right font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted sm:block">
           keyword + vector, fused and reranked · nothing from a feed scrape
         </div>
       </div>
@@ -135,15 +135,15 @@ export function SearchExplorer({
               </button>
             )}
           </label>
-          <div className="flex items-center gap-2">
-            <div className="flex border border-line bg-paper">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="grid flex-1 grid-cols-3 border border-line bg-paper">
               {MODES.map((entry) => (
                 <button
                   key={entry.key}
                   type="button"
                   onClick={() => setMode(entry.key)}
                   className={cn(
-                    "px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em]",
+                    "min-h-11 px-2 font-mono text-[10px] uppercase tracking-[0.08em]",
                     mode === entry.key ? "bg-ink text-paper" : "text-muted hover:text-ink",
                   )}
                 >
@@ -154,7 +154,7 @@ export function SearchExplorer({
             <select
               value={platform}
               onChange={(event) => setPlatform(event.target.value)}
-              className="input h-[38px] w-auto px-2 py-0 font-mono text-[10px] uppercase tracking-[0.06em]"
+              className="input h-11 w-full px-2 py-0 font-mono text-[10px] uppercase tracking-[0.06em] sm:w-auto"
               aria-label="Filter by platform"
             >
               <option value="">All platforms</option>

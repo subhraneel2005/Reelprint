@@ -176,7 +176,7 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
                   spellCheck={false}
                 />
               </label>
-              <button type="submit" disabled={submitting} className="btn btn-primary h-12 px-5">
+              <button type="submit" disabled={submitting} className="btn btn-primary h-12 w-full px-5 sm:w-auto">
                 {submitting ? "Starting…" : "Analyse reel"}
                 <ArrowRight size={15} />
               </button>

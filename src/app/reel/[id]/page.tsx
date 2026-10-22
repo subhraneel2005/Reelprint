@@ -78,7 +78,7 @@ export default async function ReelPage({ params }: { params: Promise<{ id: strin
       </header>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[330px_1fr] lg:gap-8">
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <aside className="mx-auto w-full max-w-[280px] space-y-4 lg:mx-0 lg:sticky lg:top-6 lg:max-w-none lg:self-start">
           <div className="border border-line bg-surface p-2">
             <Thumb
               id={reel.id}
