@@ -312,6 +312,14 @@ export async function transcribeAudio(filePath: string, mime = "audio/mpeg"): Pr
       errors.push(`Gemini: ${(error as Error).message}`);
     }
   }
+  const balanceBlocked = errors.some(
+    (error) => error.includes("at least $0.50") || error.includes("requires more credits"),
+  );
+  if (balanceBlocked) {
+    throw new Error(
+      "OpenRouter needs at least $0.50 in account balance for audio transcription. Add credits in OpenRouter → Settings → Credits, or paste the transcript.",
+    );
+  }
   throw new Error(`Transcription failed. ${errors.join(" | ")}`);
 }
 
