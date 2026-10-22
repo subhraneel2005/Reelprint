@@ -122,17 +122,13 @@ cp .env.example .env.local
 
 ### Configure
 
-Set at least one model provider in `.env.local`:
+Only one AI key is required:
 
 ```bash
 OPENROUTER_API_KEY=sk-or-...
-# or
-OPENAI_API_KEY=sk-...
-# or
-GEMINI_API_KEY=...
 ```
 
-OpenRouter alone can cover chat, structured output, vision, embeddings, and audio transcription. Add `YOUTUBE_API_KEY` to enable live discovery and `SUPADATA_API_KEY` for Instagram transcript and metadata fallback.
+OpenRouter alone covers chat, structured output, vision, embeddings, and Whisper transcription. `OPENAI_API_KEY` and `GEMINI_API_KEY` are optional fallbacks. Add `YOUTUBE_API_KEY` to enable live discovery and `SUPADATA_API_KEY` for Instagram transcript and metadata fallback.
 
 ### Run
 
@@ -155,9 +151,9 @@ Open [http://localhost:3000](http://localhost:3000). The archive, media, and job
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `OPENROUTER_API_KEY` | One provider | Chat, vision, embeddings, and Whisper audio |
-| `OPENAI_API_KEY` | One provider | Chat, vision, embeddings, and Whisper audio |
-| `GEMINI_API_KEY` | One provider | Chat, audio, and vision fallback |
+| `OPENROUTER_API_KEY` | **Yes, for AI** | Chat, vision, embeddings, and Whisper audio |
+| `OPENAI_API_KEY` | No | Optional fallback for chat, vision, embeddings, and Whisper |
+| `GEMINI_API_KEY` | No | Optional fallback for chat, audio, and vision |
 | `AI_PROVIDER` | No | Preferred chat/vision provider: `openrouter`, `openai`, or `gemini` |
 | `OPENROUTER_MODEL` | No | Defaults to `openai/gpt-4o-mini` |
 | `OPENROUTER_EMBED_MODEL` | No | Defaults to `openai/text-embedding-3-small` |
@@ -174,7 +170,7 @@ Open [http://localhost:3000](http://localhost:3000). The archive, media, and job
 | `YTDLP_COOKIES_FILE` | No | Netscape cookie file for YouTube |
 | `APP_URL` | No | OpenRouter attribution and absolute links |
 
-> Audio transcription through OpenRouter may require a minimum account balance. If it is unavailable, Reelprint falls back to captions or a pasted transcript.
+> OpenRouter requires at least **$0.50** of account balance for audio transcription. Without it, Reelprint falls back to captions or a pasted transcript. All other AI features need only the key.
 
 ## API
 
