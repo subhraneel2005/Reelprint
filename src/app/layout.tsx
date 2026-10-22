@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { PwaRegister } from "@/components/PwaRegister";
 import { libraryStats } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -32,15 +34,31 @@ export const metadata: Metadata = {
     "Send a Reel or Short, get the transcript, the structure, live outliers, and ten ideas you can film.",
   applicationName: "Reelprint",
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Reelprint",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon-180.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
 export const viewport: Viewport = {
   themeColor: "#eceef0",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -52,6 +70,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full">
         <AppShell stats={stats}>{children}</AppShell>
+        <InstallPrompt />
+        <PwaRegister />
       </body>
     </html>
   );
