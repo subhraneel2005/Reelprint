@@ -4,16 +4,14 @@ import { useState } from "react";
 import { Save } from "lucide-react";
 import type { Profile } from "@/lib/types";
 import { useToast } from "@/components/ToastProvider";
-import {
-  Alert,
-  AlertContent,
-  AlertDescription,
-  AlertIcon,
-  AlertTitle,
-} from "@/components/motion/alert";
-import { AnimatedNumber } from "@/components/motion/animated-number";
-import { StatefulButton } from "@/components/motion/button/stateful";
-import { Input } from "@/components/motion/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 
 export function ProfileForm({ initial }: { initial: Profile }) {
   const { toast } = useToast();
@@ -35,11 +33,6 @@ export function ProfileForm({ initial }: { initial: Profile }) {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const update =
-    (key: keyof typeof form) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      set(key, event.target.value);
-
   const filled = [form.handle, form.niche, form.audience, form.pillars, form.voice, form.goal].filter(
     (value) => value.trim().length > 0,
   ).length;
@@ -49,6 +42,7 @@ export function ProfileForm({ initial }: { initial: Profile }) {
     event.preventDefault();
     setSaving(true);
     setError(null);
+
     try {
       const response = await fetch("/api/profile", {
         method: "POST",
@@ -63,7 +57,12 @@ export function ProfileForm({ initial }: { initial: Profile }) {
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Could not save");
-      const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+      const time = new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(new Date());
+
       setSavedAt(time);
       toast({
         status: "success",
@@ -80,142 +79,133 @@ export function ProfileForm({ initial }: { initial: Profile }) {
   };
 
   return (
-    <form
-      onSubmit={save}
-      className="card-shadow overflow-hidden rounded-[28px] border border-border/80 bg-card"
-    >
-      <div className="flex items-start justify-between gap-4 border-b border-border/70 px-4 py-4">
-        <div>
-          <h2 className="display text-[24px]">Creator profile</h2>
-          <p className="mt-1 text-[11.5px] text-muted-foreground">Injected into every research brief.</p>
-        </div>
-        <div className="w-24 shrink-0 text-right">
-          <div className="mono-label">completeness</div>
-          <div className="timecode mt-0.5 text-[22px] font-medium text-ink">
-            <AnimatedNumber value={completeness} format={(value) => `${Math.round(value)}%`} />
+    <form onSubmit={save}>
+      <Card className="gap-0 overflow-hidden p-0">
+        <div className="flex items-start justify-between gap-4 border-b p-4">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">Creator profile</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Injected into every research brief.</p>
           </div>
-          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-paper-2">
-            <div
-              className="h-full rounded-full bg-signal transition-[width] duration-500"
-              style={{ width: `${completeness}%` }}
+          <div className="w-24 shrink-0 text-right">
+            <div className="text-xs text-muted-foreground">Completeness</div>
+            <div className="mt-0.5 text-xl font-medium tabular-nums">{completeness}%</div>
+            <Progress
+              value={completeness}
+              className="mt-1.5 h-1.5"
+              aria-label={`Profile completeness: ${completeness}%`}
             />
           </div>
         </div>
-      </div>
 
-      <div className="space-y-4 p-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Input
-            label="Instagram handle"
-            value={form.handle}
-            onChange={(value) => set("handle", value)}
-            placeholder="yourhandle"
-            autoComplete="off"
-            classNames={{ label: "text-[11px] font-medium" }}
-          />
-          <Input
-            label="Niche"
-            value={form.niche}
-            onChange={(value) => set("niche", value)}
-            placeholder="AI, coding and building projects in public"
-            classNames={{ label: "text-[11px] font-medium" }}
-          />
-        </div>
+        <div className="space-y-4 p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Instagram handle" htmlFor="profile-handle">
+              <Input
+                id="profile-handle"
+                value={form.handle}
+                onChange={(event) => set("handle", event.target.value)}
+                placeholder="yourhandle"
+                autoComplete="off"
+              />
+            </Field>
+            <Field label="Niche" htmlFor="profile-niche">
+              <Input
+                id="profile-niche"
+                value={form.niche}
+                onChange={(event) => set("niche", event.target.value)}
+                placeholder="AI, coding and building projects in public"
+              />
+            </Field>
+          </div>
 
-        <Input
-          label="Who is watching"
-          value={form.audience}
-          onChange={(value) => set("audience", value)}
-          placeholder="Beginner developers who want to ship real projects"
-          classNames={{ label: "text-[11px] font-medium" }}
-        />
-
-        <Input
-          label="Content pillars"
-          value={form.pillars}
-          onChange={(value) => set("pillars", value)}
-          placeholder="build logs, AI tools, coding workflows"
-          classNames={{ label: "text-[11px] font-medium" }}
-        />
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Voice" hint="How you actually talk on camera">
-            <textarea
-              value={form.voice}
-              onChange={update("voice")}
-              rows={4}
-              className="input rounded-2xl leading-relaxed"
-              placeholder="Direct, practical, no guru voice. Shows the work instead of claiming results."
+          <Field label="Who is watching" htmlFor="profile-audience">
+            <Input
+              id="profile-audience"
+              value={form.audience}
+              onChange={(event) => set("audience", event.target.value)}
+              placeholder="Beginner developers who want to ship real projects"
             />
           </Field>
-          <Field label="Avoid" hint="Formats or claims you do not want">
-            <textarea
-              value={form.avoid}
-              onChange={update("avoid")}
-              rows={4}
-              className="input rounded-2xl leading-relaxed"
-              placeholder="Clickbait income claims, reaction videos, dancing."
+
+          <Field label="Content pillars" htmlFor="profile-pillars">
+            <Input
+              id="profile-pillars"
+              value={form.pillars}
+              onChange={(event) => set("pillars", event.target.value)}
+              placeholder="build logs, AI tools, coding workflows"
             />
           </Field>
-        </div>
 
-        <Input
-          label="What this month is for"
-          value={form.goal}
-          onChange={(value) => set("goal", value)}
-          placeholder="Grow to 5k followers with build-in-public reels"
-          classNames={{ label: "text-[11px] font-medium" }}
-        />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Voice" htmlFor="profile-voice" hint="How you actually talk on camera">
+              <Textarea
+                id="profile-voice"
+                value={form.voice}
+                onChange={(event) => set("voice", event.target.value)}
+                rows={4}
+                placeholder="Direct, practical, no guru voice. Shows the work instead of claiming results."
+              />
+            </Field>
+            <Field label="Avoid" htmlFor="profile-avoid" hint="Formats or claims you do not want">
+              <Textarea
+                id="profile-avoid"
+                value={form.avoid}
+                onChange={(event) => set("avoid", event.target.value)}
+                rows={4}
+                placeholder="Clickbait income claims, reaction videos, dancing."
+              />
+            </Field>
+          </div>
 
-        {error && (
-          <Alert variant="destructive" className="rounded-2xl" contentClassName="items-start">
-            <AlertIcon />
-            <AlertContent>
+          <Field label="What this month is for" htmlFor="profile-goal">
+            <Input
+              id="profile-goal"
+              value={form.goal}
+              onChange={(event) => set("goal", event.target.value)}
+              placeholder="Grow to 5k followers with build-in-public reels"
+            />
+          </Field>
+
+          {error && (
+            <Alert variant="destructive">
               <AlertTitle>Could not save</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
-            </AlertContent>
-          </Alert>
-        )}
+            </Alert>
+          )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
-          <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-muted-foreground">
-            {savedAt ? `saved at ${savedAt}` : "stored locally · no account"}
-          </span>
-          <StatefulButton
-            type="submit"
-            state={saving ? "loading" : savedAt ? "success" : "idle"}
-            loadingText="Saving"
-            successText="Saved"
-            size="md"
-            className="px-5"
-            icon={<Save size={13} />}
-          >
-            Save profile
-          </StatefulButton>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+            <span className="text-xs text-muted-foreground">
+              {savedAt ? `Saved at ${savedAt}` : "Stored locally · no account"}
+            </span>
+            <Button type="submit" disabled={saving}>
+              {saving ? <Spinner className="size-4" /> : <Save className="size-4" aria-hidden />}
+              {saving ? "Saving" : "Save profile"}
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
     </form>
   );
 }
 
 function Field({
   label,
+  htmlFor,
   hint,
   children,
 }: {
   label: string;
+  htmlFor: string;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 flex flex-wrap items-baseline justify-between gap-1 px-1">
-        <span className="font-mono text-[9px] uppercase tracking-[0.11em] text-muted-foreground">
-          {label}
-        </span>
-        {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
-      </span>
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-1">
+        <Label htmlFor={htmlFor}>{label}</Label>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      </div>
       {children}
-    </label>
+    </div>
   );
 }

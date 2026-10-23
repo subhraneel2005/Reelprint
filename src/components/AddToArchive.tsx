@@ -5,11 +5,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Plus } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
-import { Button } from "@/components/motion/button/base";
-import { Loader } from "@/components/motion/loader";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Tag } from "@/components/Bits";
+import { cn } from "@/lib/utils";
 
-export function AddToArchive({ url, className = "" }: { url: string; className?: string }) {
+export function AddToArchive({ url, className }: { url: string; className?: string }) {
   const router = useRouter();
   const { toast } = useToast();
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -17,6 +18,7 @@ export function AddToArchive({ url, className = "" }: { url: string; className?:
 
   const add = async () => {
     setState("loading");
+
     try {
       const response = await fetch("/api/ingest", {
         method: "POST",
@@ -24,7 +26,9 @@ export function AddToArchive({ url, className = "" }: { url: string; className?:
         body: JSON.stringify({ url }),
       });
       const data = (await response.json()) as { reel?: { id: string }; error?: string };
+
       if (!response.ok || !data.reel) throw new Error(data.error ?? "Could not queue it");
+
       setReelId(data.reel.id);
       setState("done");
       toast({
@@ -49,8 +53,9 @@ export function AddToArchive({ url, className = "" }: { url: string; className?:
   if (state === "done" && reelId) {
     return (
       <Link href={`/reel/${reelId}`} className={className}>
-        <Tag tone="ok" className="normal-case tracking-normal">
-          <Check size={10} /> in queue
+        <Tag tone="ok">
+          <Check className="size-3" aria-hidden />
+          In queue
         </Tag>
       </Link>
     );
@@ -63,14 +68,14 @@ export function AddToArchive({ url, className = "" }: { url: string; className?:
       disabled={state === "loading"}
       variant="secondary"
       size="sm"
-      className={`h-7 gap-1 px-2.5 font-mono text-[8.5px] uppercase tracking-[0.07em] ${className}`}
+      className={cn("h-7 px-2.5 text-xs", className)}
     >
       {state === "loading" ? (
-        <Loader variant="spinner" size={10} label="Queueing" />
+        <Spinner className="size-3" />
       ) : (
-        <Plus size={10} />
+        <Plus className="size-3" aria-hidden />
       )}
-      {state === "loading" ? "queueing" : state === "error" ? "retry" : "archive"}
+      {state === "loading" ? "Queueing" : state === "error" ? "Retry" : "Archive"}
     </Button>
   );
 }

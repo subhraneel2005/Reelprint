@@ -1,4 +1,4 @@
-const CACHE = "reelprint-v2";
+const CACHE = "reelprint-v3";
 const OFFLINE_URL = "/offline";
 const CORE = [
   OFFLINE_URL,

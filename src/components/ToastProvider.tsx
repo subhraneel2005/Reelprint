@@ -1,37 +1,47 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
-import {
-  AnimatedToastStack,
-  useAnimatedToastStack,
-  type ToastInput,
-} from "@/components/motion/animated-toast-stack";
+import { type ReactNode } from "react";
+import { toast as sonnerToast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
-type ToastContextValue = {
-  toast: (input: ToastInput) => string;
-  dismiss: (id: string) => void;
+type ToastInput = {
+  status?: "info" | "success" | "error";
+  title: string;
+  description?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 };
 
-const ToastContext = createContext<ToastContextValue | null>(null);
-
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const { toasts, showToast, dismissToast } = useAnimatedToastStack({ limit: 3 });
-
   return (
-    <ToastContext.Provider value={{ toast: showToast, dismiss: dismissToast }}>
+    <>
       {children}
-      <AnimatedToastStack
-        toasts={toasts}
-        onDismiss={dismissToast}
-        position="bottom-right"
-        className="bottom-[calc(6.4rem+env(safe-area-inset-bottom))] left-3 right-3 w-auto items-stretch md:bottom-6 md:left-auto md:right-6 md:w-[360px]"
-      />
-    </ToastContext.Provider>
+      <Toaster theme="light" position="bottom-right" richColors closeButton />
+    </>
   );
 }
 
 export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast must be used inside ToastProvider");
-  return context;
+  return {
+    toast(input: ToastInput) {
+      const options = {
+        description: input.description,
+        action: input.action,
+      };
+
+      if (input.status === "success") {
+        sonnerToast.success(input.title, options);
+        return;
+      }
+
+      if (input.status === "error") {
+        sonnerToast.error(input.title, options);
+        return;
+      }
+
+      sonnerToast(input.title, options);
+    },
+  };
 }

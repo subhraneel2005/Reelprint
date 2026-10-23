@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  CheckCircle2,
+  Circle,
+  Loader2,
+  MinusCircle,
+  XCircle,
+} from "lucide-react";
 import type { Job } from "@/lib/types";
-import { TodoList, type TodoItem } from "@/components/agents/todo-list";
-import { AnimatedBadge } from "@/components/motion/animated-badge";
-import { Loader } from "@/components/motion/loader";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 
 export function JobProgress({
   jobId,
@@ -33,18 +40,23 @@ export function JobProgress({
       try {
         const response = await fetch(`/api/jobs/${jobId}`, { cache: "no-store" });
         if (!response.ok) throw new Error("Could not read the job");
+
         const data = (await response.json()) as Job;
         if (cancelled) return;
+
         setJob(data);
         setFailed(null);
+
         if (data.status === "done") {
           doneRef.current?.(data);
           return;
         }
+
         if (data.status === "error") {
           errorRef.current?.(data);
           return;
         }
+
         timer = setTimeout(poll, 1200);
       } catch (error) {
         if (cancelled) return;
@@ -54,6 +66,7 @@ export function JobProgress({
     };
 
     void poll();
+
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
@@ -63,64 +76,82 @@ export function JobProgress({
   const steps = job?.steps ?? [];
   const isError = job?.status === "error";
   const isDone = job?.status === "done";
-  const items: TodoItem[] = steps.map((step) => ({
-    id: step.key,
-    title: step.label,
-    status:
-      step.status === "done"
-        ? "completed"
-        : step.status === "running"
-          ? "in-progress"
-          : step.status === "error"
-            ? "cancelled"
-            : step.status === "skipped"
-              ? "cancelled"
-              : "pending",
-    detail:
-      step.status === "error"
-        ? step.detail ?? "Stopped"
-        : step.detail,
-  }));
 
   if (!job) {
     return (
-      <div className="flex items-center gap-3 rounded-[22px] border border-border/80 bg-card px-4 py-3.5">
-        <Loader variant="dot-matrix" size={22} label="Queued" className="text-primary" />
+      <Card className="flex flex-row items-center gap-3 p-4">
+        <Spinner className="size-5 text-primary" />
         <div>
-          <p className="text-[12px] font-medium text-ink">Opening the job</p>
-          <p className="text-[10px] text-muted-foreground">Waiting for the first status update.</p>
+          <p className="text-sm font-medium">Opening the job</p>
+          <p className="text-xs text-muted-foreground">Waiting for the first status update.</p>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <AnimatedBadge
-          status={isError ? "danger" : isDone ? "success" : "loading"}
-          size="sm"
-          contentKey={job.status}
-        >
-          {isError ? "stopped" : isDone ? "complete" : `reading · ${job.stage ?? "queued"}`}
-        </AnimatedBadge>
-        <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-muted-foreground">
+        <Badge variant={isError ? "destructive" : isDone ? "secondary" : "default"}>
+          {isError ? "Stopped" : isDone ? "Complete" : `Reading · ${job.stage ?? "queued"}`}
+        </Badge>
+        <span className="text-xs text-muted-foreground">
           {steps.filter((step) => step.status === "done" || step.status === "skipped").length}/
           {steps.length} steps
         </span>
       </div>
-      <TodoList
-        items={items}
-        title={isError ? "Analysis stopped" : isDone ? "Analysis complete" : "Analysis in progress"}
-        defaultOpen
-        collapseOnComplete
-        className="bg-card"
-      />
+
+      <Card className="gap-0 p-3">
+        <p className="text-sm font-medium">
+          {isError ? "Analysis stopped" : isDone ? "Analysis complete" : "Analysis in progress"}
+        </p>
+        <ul className="mt-3 space-y-2" aria-live="polite">
+          {steps.map((step) => (
+            <li key={step.key} className="flex gap-2">
+              <StepIcon status={step.status} />
+              <div className="min-w-0">
+                <p className="text-sm leading-snug">{step.label}</p>
+                {step.detail && (
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    {step.status === "error" ? step.detail : step.detail}
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+
       {failed && (
-        <p className="rounded-2xl border border-destructive/25 bg-destructive/5 px-3 py-2 font-mono text-[9.5px] text-destructive">
+        <p
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+        >
           {failed}
         </p>
       )}
     </div>
   );
+}
+
+function StepIcon({ status }: { status: string }) {
+  const className = "mt-0.5 size-4 shrink-0";
+
+  if (status === "done") {
+    return <CheckCircle2 className={`${className} text-emerald-600`} aria-hidden />;
+  }
+
+  if (status === "running") {
+    return <Loader2 className={`${className} animate-spin text-primary`} aria-hidden />;
+  }
+
+  if (status === "error") {
+    return <XCircle className={`${className} text-destructive`} aria-hidden />;
+  }
+
+  if (status === "skipped") {
+    return <MinusCircle className={`${className} text-muted-foreground`} aria-hidden />;
+  }
+
+  return <Circle className={`${className} text-muted-foreground`} aria-hidden />;
 }

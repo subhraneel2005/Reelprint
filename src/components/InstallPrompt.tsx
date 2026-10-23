@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -47,12 +49,14 @@ export function InstallPrompt() {
 
   const install = async () => {
     if (!event) return;
+
     try {
       await event.prompt();
       await event.userChoice;
     } catch {
       // The browser can reject a prompt if it was already used.
     }
+
     setEvent(null);
     setVisible(false);
   };
@@ -62,37 +66,36 @@ export function InstallPrompt() {
   return (
     <aside
       aria-label="Install Reelprint"
-      className="fixed inset-x-3 bottom-[calc(5.6rem+env(safe-area-inset-bottom))] z-40 rounded-[24px] border border-ink/20 bg-ink text-primary-foreground shadow-[0_24px_60px_-20px_rgba(18,22,20,0.7)] md:hidden"
+      className="fixed inset-x-3 bottom-[calc(5.6rem+env(safe-area-inset-bottom))] z-40 md:hidden"
     >
-      <div className="flex items-start gap-3 p-3.5">
-        <span className="mt-0.5 grid h-9 w-9 shrink-0 grid-cols-3 items-end gap-[2px] rounded-xl bg-signal p-[6px]" aria-hidden>
-          <span className="h-full rounded-[1px] bg-primary-foreground" />
-          <span className="h-[55%] rounded-[1px] bg-primary-foreground" />
-          <span className="h-[80%] rounded-[1px] bg-primary-foreground" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-medium leading-snug">Install Reelprint</p>
-          <p className="mt-0.5 text-[11.5px] leading-relaxed text-primary-foreground/65">
-            Send reels straight from Instagram and YouTube. Opens full-screen, no address bar.
-          </p>
-          <button
+      <Card className="gap-0 border bg-card p-3.5 shadow-lg">
+        <div className="flex items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+            <Download className="size-4" aria-hidden />
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium leading-snug">Install Reelprint</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Send reels straight from Instagram and YouTube. Opens full-screen, no address bar.
+            </p>
+            <Button type="button" size="sm" onClick={install} className="mt-2.5">
+              <Download className="size-4" aria-hidden />
+              Add to home screen
+            </Button>
+          </div>
+
+          <Button
             type="button"
-            onClick={install}
-            className="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-full bg-signal px-3.5 text-[11px] font-medium text-white active:opacity-80"
+            variant="ghost"
+            size="icon-sm"
+            onClick={dismiss}
+            aria-label="Dismiss install prompt"
           >
-            <Download size={13} />
-            Add to home screen
-          </button>
+            <X className="size-4" aria-hidden />
+          </Button>
         </div>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Not now"
-          className="-mr-1 -mt-1 grid h-8 w-8 place-items-center text-primary-foreground/50 active:text-primary-foreground"
-        >
-          <X size={15} />
-        </button>
-      </div>
+      </Card>
     </aside>
   );
 }

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Offline — Reelprint",
@@ -8,85 +11,27 @@ export const metadata: Metadata = {
 
 export default function OfflinePage() {
   return (
-    <>
-      <style>{`html,body{margin:0;padding:0;background:#eef0ec}`}</style>
-      <div
-      style={{
-        minHeight: "100dvh",
-        display: "grid",
-        placeItems: "center",
-        padding: "24px",
-        background: "#eef0ec",
-        color: "#121614",
-        fontFamily: "ui-sans-serif, system-ui, -apple-system, sans-serif",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: "380px" }}>
-        <div
-          aria-hidden
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            alignItems: "end",
-            gap: "4px",
-            width: "42px",
-            height: "42px",
-            padding: "8px",
-            borderRadius: "10px",
-            background: "#e0452a",
-          }}
-        >
-          <span style={{ height: "100%", background: "#eef0ec" }} />
-          <span style={{ height: "55%", background: "#eef0ec" }} />
-          <span style={{ height: "80%", background: "#eef0ec" }} />
-        </div>
-        <p
-          style={{
-            margin: "28px 0 0",
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            fontSize: "10px",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "#66716a",
-          }}
-        >
-          no signal
+    <div className="grid min-h-dvh place-items-center bg-background p-6 text-foreground">
+      <Card className="w-full max-w-sm p-6">
+        <span className="grid size-11 grid-cols-3 items-end gap-0.5 rounded-lg bg-primary p-2" aria-hidden>
+          <span className="h-full rounded-[1px] bg-primary-foreground" />
+          <span className="h-[55%] rounded-[1px] bg-primary-foreground" />
+          <span className="h-[80%] rounded-[1px] bg-primary-foreground" />
+        </span>
+
+        <p className="mt-7 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <WifiOff className="size-3.5" aria-hidden />
+          No signal
         </p>
-        <h1
-          style={{
-            margin: "10px 0 0",
-            fontSize: "clamp(2.2rem, 12vw, 3.2rem)",
-            fontWeight: 650,
-            letterSpacing: "-0.055em",
-            lineHeight: 0.95,
-          }}
-        >
-          The desk is offline.
-        </h1>
-        <p style={{ margin: "16px 0 0", fontSize: "14px", lineHeight: 1.6, color: "#303a34" }}>
-          Reconnect to send a reel or run research. Everything already transcribed is still saved on
-          this device.
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">The desk is offline.</h1>
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+          Reconnect to send a reel or run research. Everything already transcribed is still saved
+          on this device.
         </p>
-        <Link
-          href="/"
-          style={{
-            display: "inline-flex",
-            marginTop: "24px",
-            height: "44px",
-            alignItems: "center",
-            padding: "0 18px",
-            borderRadius: "999px",
-            background: "#e0452a",
-            color: "#fff",
-            fontSize: "13px",
-            fontWeight: 500,
-            textDecoration: "none",
-          }}
-        >
-          Try again
-        </Link>
-      </div>
+        <Button asChild className="mt-6">
+          <Link href="/">Try again</Link>
+        </Button>
+      </Card>
     </div>
-    </>
   );
 }

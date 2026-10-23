@@ -4,8 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, RotateCw, TriangleAlert } from "lucide-react";
 import { JobProgress } from "./JobProgress";
-import { AnimatedBadge } from "@/components/motion/animated-badge";
-import { StatefulButton } from "@/components/motion/button/stateful";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 
 export function ReelRecovery({
   reelId,
@@ -22,7 +26,9 @@ export function ReelRecovery({
 }) {
   const router = useRouter();
   const [transcript, setTranscript] = useState("");
-  const [activeJob, setActiveJob] = useState<string | null>(status === "processing" ? jobId ?? null : null);
+  const [activeJob, setActiveJob] = useState<string | null>(
+    status === "processing" ? jobId ?? null : null,
+  );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -31,8 +37,10 @@ export function ReelRecovery({
       setMessage("Paste at least a few sentences.");
       return;
     }
+
     setBusy(true);
     setMessage(null);
+
     try {
       const response = await fetch(`/api/reels/${reelId}/transcript`, {
         method: "POST",
@@ -52,6 +60,7 @@ export function ReelRecovery({
   const retry = async () => {
     setBusy(true);
     setMessage(null);
+
     try {
       const response = await fetch(`/api/reels/${reelId}/retry`, { method: "POST" });
       const data = (await response.json()) as { jobId?: string; error?: string };
@@ -65,71 +74,75 @@ export function ReelRecovery({
   };
 
   return (
-    <section className="card-shadow overflow-hidden rounded-[26px] border border-signal/25 bg-card">
-      <div className="flex items-start gap-3 border-b border-signal/15 bg-signal-soft/45 px-4 py-3.5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-signal/20 bg-card/70 text-signal">
-          <TriangleAlert size={15} />
+    <Card className="gap-0 overflow-hidden border-amber-600/30">
+      <div className="flex items-start gap-3 border-b bg-muted/50 p-4">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-background text-amber-700">
+          <TriangleAlert className="size-4" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[13px] font-medium text-ink">
+            <h2 className="text-sm font-medium">
               {hasTranscript ? "Analysis stopped before the index" : "This post needs a transcript"}
             </h2>
-            <AnimatedBadge status="warning" size="sm" pulse={false}>
-              needs help
-            </AnimatedBadge>
+            <Badge variant="secondary">Needs help</Badge>
           </div>
-          <p className="mt-1 text-[12px] leading-relaxed text-ink-2">
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             {error ??
               "The platform did not return the transcript. Paste it here and the DNA, index and brief will continue from it."}
           </p>
         </div>
       </div>
+
       <div className="space-y-2.5 p-4">
         {!hasTranscript && (
           <>
-            <textarea
+            <Label htmlFor="recovery-transcript" className="sr-only">
+              Transcript
+            </Label>
+            <Textarea
+              id="recovery-transcript"
               value={transcript}
               onChange={(event) => setTranscript(event.target.value)}
               rows={4}
-              className="input rounded-2xl bg-background/60 leading-relaxed"
               placeholder="Paste the transcript here…"
+              aria-describedby="recovery-transcript-hint"
             />
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-muted-foreground">
-                the URL stays attached to this transcript
-              </span>
-              <StatefulButton
-                type="button"
-                onClick={submitTranscript}
-                state={busy ? "loading" : "idle"}
-                loadingText="Starting"
-                size="sm"
-                icon={<ArrowRight size={13} />}
-              >
+              <p id="recovery-transcript-hint" className="text-xs text-muted-foreground">
+                The URL stays attached to this transcript.
+              </p>
+              <Button type="button" onClick={submitTranscript} disabled={busy} size="sm">
+                {busy ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <ArrowRight className="size-4" aria-hidden />
+                )}
                 Continue analysis
-              </StatefulButton>
+              </Button>
             </div>
           </>
         )}
+
         {hasTranscript && (
-          <StatefulButton
-            type="button"
-            onClick={retry}
-            state={busy ? "loading" : "idle"}
-            loadingText="Starting"
-            size="sm"
-            variant="secondary"
-            icon={<RotateCw size={12} />}
-          >
+          <Button type="button" onClick={retry} disabled={busy} variant="secondary" size="sm">
+            {busy ? (
+              <Spinner className="size-4" />
+            ) : (
+              <RotateCw className="size-4" aria-hidden />
+            )}
             Retry DNA + index
-          </StatefulButton>
+          </Button>
         )}
+
         {message && (
-          <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-2.5 py-1.5 text-[11px] text-destructive">
+          <p
+            role="alert"
+            className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+          >
             {message}
           </p>
         )}
+
         {activeJob && (
           <JobProgress
             jobId={activeJob}
@@ -138,6 +151,6 @@ export function ReelRecovery({
           />
         )}
       </div>
-    </section>
+    </Card>
   );
 }

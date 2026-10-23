@@ -2,24 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, ClipboardPaste, Link2, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, ClipboardPaste, Link2, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import type { Job, Reel } from "@/lib/types";
 import { detectPlatform, platformLabel } from "@/lib/util";
 import { JobProgress } from "./JobProgress";
-import { Tag } from "./Bits";
-import {
-  Alert,
-  AlertContent,
-  AlertDescription,
-  AlertIcon,
-  AlertTitle,
-} from "@/components/motion/alert";
-import { StatefulButton } from "@/components/motion/button/stateful";
-import { Input } from "@/components/motion/input";
-import { Switch } from "@/components/motion/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/motion/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 type Mode = "link" | "transcript";
+
+const initialMetrics = { views: "", likes: "", comments: "", shares: "", followers: "" };
 
 export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
   const router = useRouter();
@@ -27,7 +27,7 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
   const [url, setUrl] = useState(defaultUrl);
   const [transcript, setTranscript] = useState("");
   const [caption, setCaption] = useState("");
-  const [metrics, setMetrics] = useState({ views: "", likes: "", comments: "", shares: "", followers: "" });
+  const [metrics, setMetrics] = useState(initialMetrics);
   const [showMetrics, setShowMetrics] = useState(false);
   const [visual, setVisual] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -51,15 +51,19 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
     event.preventDefault();
     setError(null);
     setJobError(null);
+
     if (mode === "link" && !url.trim()) {
       setError("Paste a reel or short link first.");
       return;
     }
+
     if (mode === "transcript" && transcript.trim().length < 10) {
       setError("Paste at least a few sentences of the transcript.");
       return;
     }
+
     setSubmitting(true);
+
     try {
       const response = await fetch("/api/ingest", {
         method: "POST",
@@ -87,10 +91,12 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
       if (!response.ok || !data.reel) throw new Error(data.error ?? "Could not start the analysis");
 
       setReelId(data.reel.id);
+
       if (data.existing && data.reel.status === "ready") {
         router.push(`/reel/${data.reel.id}`);
         return;
       }
+
       if (data.jobId) {
         setJobId(data.jobId);
         setShowFix(false);
@@ -98,6 +104,7 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
         setJobError(data.reel.error ?? "This post needs a transcript.");
         setShowFix(true);
       }
+
       setUrl("");
       if (mode === "transcript") {
         setTranscript("");
@@ -115,7 +122,9 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
       setJobError("Paste at least a few sentences.");
       return;
     }
+
     setFixing(true);
+
     try {
       const response = await fetch(`/api/reels/${reelId}/transcript`, {
         method: "POST",
@@ -124,6 +133,7 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
       });
       const data = (await response.json()) as { jobId?: string; error?: string };
       if (!response.ok || !data.jobId) throw new Error(data.error ?? "Could not continue");
+
       setJobId(data.jobId);
       setJobError(null);
       setShowFix(false);
@@ -145,180 +155,184 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
 
   return (
     <div>
-      <form
-        onSubmit={submit}
-        className="card-shadow overflow-hidden rounded-[28px] border border-border/80 bg-card"
-      >
-        <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)} variant="pill">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-3 py-2.5 sm:px-4">
-            <TabsList className="bg-background/70">
-              <TabsTrigger value="link" icon={<Link2 size={14} />} className="text-[12px]">
+      <form onSubmit={submit} className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)} className="gap-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b p-2.5 sm:p-3">
+            <TabsList>
+              <TabsTrigger value="link">
+                <Link2 className="size-4" aria-hidden />
                 Link
               </TabsTrigger>
-              <TabsTrigger value="transcript" icon={<ClipboardPaste size={14} />} className="text-[12px]">
+              <TabsTrigger value="transcript">
+                <ClipboardPaste className="size-4" aria-hidden />
                 Transcript
               </TabsTrigger>
             </TabsList>
-            <span className="font-mono text-[8.5px] uppercase tracking-[0.11em] text-muted-foreground">
-              one link at a time · 30–90 sec
-            </span>
+            <span className="text-xs text-muted-foreground">One link at a time · 30–90 sec</span>
           </div>
 
-          <div className="p-3.5 sm:p-4">
+          <div className="space-y-3 p-3.5 sm:p-4">
             <TabsContent value="link" className="mt-0">
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  value={url}
-                  onChange={setUrl}
-                  leftIcon={<Link2 size={16} />}
-                  className="flex-1"
-                  classNames={{
-                    field: "h-12 rounded-2xl bg-background/60",
-                    input: "text-[13px]",
-                  }}
-                  placeholder="instagram.com/reel/…  or  youtube.com/shorts/…"
-                  autoComplete="off"
-                  spellCheck={false}
-                  aria-label="Reel, Short or TikTok link"
-                />
-                <StatefulButton
-                  type="submit"
-                  state={submitting ? "loading" : "idle"}
-                  loadingText="Starting"
-                  size="lg"
-                  className="h-12 w-full px-5 text-[13px] sm:w-auto"
-                  icon={<ArrowRight size={15} />}
-                >
+                <div className="relative flex-1">
+                  <Label htmlFor="ingest-url" className="sr-only">
+                    Reel, Short or TikTok link
+                  </Label>
+                  <Link2
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden
+                  />
+                  <Input
+                    id="ingest-url"
+                    value={url}
+                    onChange={(event) => setUrl(event.target.value)}
+                    placeholder="instagram.com/reel/… or youtube.com/shorts/…"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="h-11 pl-9"
+                  />
+                </div>
+                <Button type="submit" size="lg" disabled={submitting} className="h-11">
+                  {submitting ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <ArrowRight className="size-4" aria-hidden />
+                  )}
                   Analyse reel
-                </StatefulButton>
+                </Button>
               </div>
             </TabsContent>
 
-            <TabsContent value="transcript" className="mt-0 space-y-2.5">
-              <Input
-                value={url}
-                onChange={setUrl}
-                leftIcon={<Link2 size={16} />}
-                classNames={{
-                  field: "h-11 rounded-2xl bg-background/60",
-                  input: "text-[13px]",
-                }}
-                placeholder="Keep the source link for the archive (optional)"
-                autoComplete="off"
-                spellCheck={false}
-                aria-label="Source link (optional)"
-              />
-              <label className="block">
-                <span className="mb-1.5 flex items-center gap-1.5 px-1 font-mono text-[8.5px] uppercase tracking-[0.12em] text-muted-foreground">
-                  <ClipboardPaste size={11} /> Transcript
-                </span>
-                <textarea
+            <TabsContent value="transcript" className="mt-0 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ingest-source">Source link (optional)</Label>
+                <Input
+                  id="ingest-source"
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                  placeholder="Keep the source link for the archive"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="ingest-transcript">Transcript</Label>
+                <Textarea
+                  id="ingest-transcript"
                   value={transcript}
                   onChange={(event) => setTranscript(event.target.value)}
                   rows={7}
-                  className="input resize-y rounded-2xl bg-background/60 leading-relaxed"
                   placeholder="Paste the transcript from the reel. This is enough to extract the DNA, the structure and the ideas."
                 />
-              </label>
-              <Input
-                value={caption}
-                onChange={setCaption}
-                label="Caption (optional)"
-                classNames={{
-                  label: "px-1 font-mono text-[8.5px] uppercase tracking-[0.12em] text-muted-foreground",
-                  field: "h-11 rounded-2xl bg-background/60",
-                  input: "text-[13px]",
-                }}
-                placeholder="Hooks, hashtags, CTA"
-              />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="ingest-caption">Caption (optional)</Label>
+                <Input
+                  id="ingest-caption"
+                  value={caption}
+                  onChange={(event) => setCaption(event.target.value)}
+                  placeholder="Hooks, hashtags, CTA"
+                />
+              </div>
+
               <div className="flex justify-end pt-1">
-                <StatefulButton
-                  type="submit"
-                  state={submitting ? "loading" : "idle"}
-                  loadingText="Starting"
-                  size="md"
-                  className="px-5"
-                  icon={<ArrowRight size={14} />}
-                >
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <ArrowRight className="size-4" aria-hidden />
+                  )}
                   Analyse transcript
-                </StatefulButton>
+                </Button>
               </div>
             </TabsContent>
 
-          {detected && detected.platform !== "other" && mode === "link" && (
-            <div className="mt-2.5 flex items-center gap-2">
-              <Tag tone="ok">
-                <span className="size-1.5 rounded-full bg-emerald-500" />
-                detected {platformLabel(detected.platform)}
-              </Tag>
-              {detected.externalId && (
-                <span className="truncate font-mono text-[9px] text-muted-foreground">
-                  {detected.externalId}
-                </span>
-              )}
-            </div>
-          )}
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setShowMetrics((value) => !value)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background/60 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-ink/40 hover:text-ink"
-              >
-                <SlidersHorizontal size={11} />
-                {showMetrics ? "Hide numbers" : "Reach numbers"}
-              </button>
-              <Switch
-                checked={visual}
-                onCheckedChange={setVisual}
-                label="Read frames"
-                ariaLabel="Read frames from the video"
-              />
-            </div>
-            <span className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted-foreground">
-              {visual ? "audio + vision" : "audio only"} · stays on this machine
-            </span>
-          </div>
-
-          {showMetrics && (
-            <div className="mt-3 grid grid-cols-2 gap-2.5 rounded-[20px] border border-border/70 bg-background/60 p-3 sm:grid-cols-5">
-              {(
-                [
-                  ["views", "Views"],
-                  ["likes", "Likes"],
-                  ["comments", "Comments"],
-                  ["shares", "Shares"],
-                  ["followers", "Creator followers"],
-                ] as const
-              ).map(([key, label]) => (
-                <label key={key} className="block">
-                  <span className="mb-1 block font-mono text-[8px] uppercase tracking-[0.08em] text-muted-foreground">
-                    {label}
+            {detected && detected.platform !== "other" && mode === "link" && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="gap-1.5">
+                  <span className="size-1.5 rounded-full bg-emerald-600" aria-hidden />
+                  Detected {platformLabel(detected.platform)}
+                </Badge>
+                {detected.externalId && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {detected.externalId}
                   </span>
-                  <input
-                    value={metrics[key]}
-                    onChange={(event) =>
-                      setMetrics((current) => ({ ...current, [key]: event.target.value }))
-                    }
-                    inputMode="numeric"
-                    className="input rounded-xl px-2.5 py-2 font-mono text-[11px]"
-                    placeholder="—"
-                  />
-                </label>
-              ))}
-            </div>
-          )}
+                )}
+              </div>
+            )}
 
-          {error && (
-            <Alert variant="destructive" className="mt-3 rounded-2xl" contentClassName="items-start">
-              <AlertIcon />
-              <AlertContent>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMetrics((value) => !value)}
+                  aria-expanded={showMetrics}
+                  aria-controls="ingest-metrics"
+                >
+                  <SlidersHorizontal className="size-3.5" aria-hidden />
+                  {showMetrics ? "Hide numbers" : "Reach numbers"}
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="ingest-visual"
+                    checked={visual}
+                    onCheckedChange={setVisual}
+                    aria-describedby="ingest-visual-hint"
+                  />
+                  <Label htmlFor="ingest-visual">Read frames</Label>
+                </div>
+              </div>
+
+              <span id="ingest-visual-hint" className="text-xs text-muted-foreground">
+                {visual ? "Audio + vision" : "Audio only"} · stays on this machine
+              </span>
+            </div>
+
+            {showMetrics && (
+              <div
+                id="ingest-metrics"
+                className="grid grid-cols-2 gap-2.5 rounded-lg border bg-muted/30 p-3 sm:grid-cols-5"
+              >
+                {(
+                  [
+                    ["views", "Views"],
+                    ["likes", "Likes"],
+                    ["comments", "Comments"],
+                    ["shares", "Shares"],
+                    ["followers", "Creator followers"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div key={key} className="space-y-1">
+                    <Label htmlFor={`ingest-${key}`} className="text-xs text-muted-foreground">
+                      {label}
+                    </Label>
+                    <Input
+                      id={`ingest-${key}`}
+                      value={metrics[key]}
+                      onChange={(event) =>
+                        setMetrics((current) => ({ ...current, [key]: event.target.value }))
+                      }
+                      inputMode="numeric"
+                      placeholder="—"
+                      className="h-8 text-xs tabular-nums"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {error && (
+              <Alert variant="destructive">
+                <TriangleAlert aria-hidden />
                 <AlertTitle>Could not send that</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
-              </AlertContent>
-            </Alert>
-          )}
+              </Alert>
+            )}
           </div>
         </Tabs>
       </form>
@@ -334,63 +348,63 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
             }}
           />
           {reelId && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/50 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
-              <span>You can leave this page. The job keeps running.</span>
-              <button
+            <Card className="flex flex-row flex-wrap items-center justify-between gap-2 p-3">
+              <span className="text-xs text-muted-foreground">
+                You can leave this page. The job keeps running.
+              </span>
+              <Button
                 type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0"
                 onClick={() => router.push(`/reel/${reelId}`)}
-                className="text-ink underline decoration-border underline-offset-4"
               >
                 Open the reel
-              </button>
-            </div>
+              </Button>
+            </Card>
           )}
         </div>
       )}
 
       {jobError && (
-        <Alert variant="warning" className="mt-3 rounded-2xl" contentClassName="items-start">
-          <AlertIcon />
-          <AlertContent>
-            <AlertTitle>Instagram and TikTok often block link fetches.</AlertTitle>
-            <AlertDescription>{jobError}</AlertDescription>
+        <Alert className="mt-3">
+          <TriangleAlert aria-hidden />
+          <AlertTitle>Instagram and TikTok often block link fetches.</AlertTitle>
+          <AlertDescription>
+            <p>{jobError}</p>
             {reelId && (
               <div className="pt-2">
                 {!showFix ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowFix(true)}
-                    className="btn btn-ghost h-8 bg-surface text-[11px]"
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowFix(true)}>
                     Paste the transcript instead
-                  </button>
+                  </Button>
                 ) : (
                   <div className="space-y-2">
-                    <textarea
+                    <Label htmlFor="ingest-fix" className="sr-only">
+                      Transcript
+                    </Label>
+                    <Textarea
+                      id="ingest-fix"
                       value={fixText}
                       onChange={(event) => setFixText(event.target.value)}
                       rows={4}
-                      className="input rounded-2xl bg-surface leading-relaxed"
                       placeholder="Paste the transcript. The DNA, search index and research brief will build from it."
                     />
                     <div className="flex justify-end">
-                      <StatefulButton
-                        type="button"
-                        onClick={fixWithTranscript}
-                        state={fixing ? "loading" : "idle"}
-                        loadingText="Starting"
-                        size="sm"
-                        className="h-8 text-[11px]"
-                        icon={<ArrowRight size={13} />}
-                      >
+                      <Button type="button" size="sm" onClick={fixWithTranscript} disabled={fixing}>
+                        {fixing ? (
+                          <Spinner className="size-4" />
+                        ) : (
+                          <ArrowRight className="size-4" aria-hidden />
+                        )}
                         Continue analysis
-                      </StatefulButton>
+                      </Button>
                     </div>
                   </div>
                 )}
               </div>
             )}
-          </AlertContent>
+          </AlertDescription>
         </Alert>
       )}
     </div>

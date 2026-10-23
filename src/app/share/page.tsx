@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { IngestForm } from "@/components/IngestForm";
 import { ArrowLeft, Share2 } from "lucide-react";
-import { Panel, Tag } from "@/components/Bits";
-import { TextReveal } from "@/components/motion/text-reveal";
+import { IngestForm } from "@/components/IngestForm";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -18,38 +19,42 @@ export default async function SharePage({
 }) {
   const params = await searchParams;
   const shared = params.url || urlFrom(params.text ?? "") || "";
+
   return (
-    <div className="mx-auto max-w-[780px]">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/60 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-ink/30 hover:text-ink"
-      >
-        <ArrowLeft size={12} /> desk
-      </Link>
+    <div className="mx-auto max-w-2xl">
+      <Button asChild variant="ghost" size="sm" className="-ml-2">
+        <Link href="/">
+          <ArrowLeft className="size-4" aria-hidden />
+          Desk
+        </Link>
+      </Button>
+
       <header className="mt-5">
-        <Tag tone="signal">
-          <Share2 size={10} /> shared link
-        </Tag>
-        <TextReveal
-          as="h1"
-          text="Send it to the desk."
-          split="word"
-          className="display mt-3 text-[clamp(2.2rem,7vw,3.5rem)]"
-        />
-        <p className="mt-3 max-w-lg text-[13px] leading-relaxed text-muted-foreground">
+        <Badge variant="secondary">
+          <Share2 className="size-3" aria-hidden />
+          Shared link
+        </Badge>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+          Send it to the desk.
+        </h1>
+        <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
           {shared
             ? "The link from your share sheet is loaded below. Start the analysis, or paste the transcript if the platform blocks the fetch."
             : "Share a Reel or Short into Reelprint from your phone, or paste a link below."}
         </p>
       </header>
+
       <div className="mt-5">
         <IngestForm defaultUrl={shared} />
       </div>
-      <Panel className="mt-4 px-3.5 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
-        On Android, install the desk from the browser menu to get Reelprint in the Instagram share
-        sheet. On iPhone, use the share sheet to copy the link and paste it here; iOS does not expose
-        web share targets to PWAs.
-      </Panel>
+
+      <Card className="mt-4 p-3.5">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          On Android, install the desk from the browser menu to get Reelprint in the Instagram share
+          sheet. On iPhone, use the share sheet to copy the link and paste it here; iOS does not
+          expose web share targets to PWAs.
+        </p>
+      </Card>
     </div>
   );
 }
