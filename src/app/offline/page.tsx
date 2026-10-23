@@ -9,15 +9,15 @@ export const metadata: Metadata = {
 export default function OfflinePage() {
   return (
     <>
-      <style>{`html,body{margin:0;padding:0;background:#eceef0}`}</style>
+      <style>{`html,body{margin:0;padding:0;background:#eef0ec}`}</style>
       <div
       style={{
         minHeight: "100dvh",
         display: "grid",
         placeItems: "center",
         padding: "24px",
-        background: "#eceef0",
-        color: "#11161b",
+        background: "#eef0ec",
+        color: "#121614",
         fontFamily: "ui-sans-serif, system-ui, -apple-system, sans-serif",
       }}
     >
@@ -32,12 +32,13 @@ export default function OfflinePage() {
             width: "42px",
             height: "42px",
             padding: "8px",
-            background: "#d43a1e",
+            borderRadius: "10px",
+            background: "#e0452a",
           }}
         >
-          <span style={{ height: "100%", background: "#eceef0" }} />
-          <span style={{ height: "55%", background: "#eceef0" }} />
-          <span style={{ height: "80%", background: "#eceef0" }} />
+          <span style={{ height: "100%", background: "#eef0ec" }} />
+          <span style={{ height: "55%", background: "#eef0ec" }} />
+          <span style={{ height: "80%", background: "#eef0ec" }} />
         </div>
         <p
           style={{
@@ -46,7 +47,7 @@ export default function OfflinePage() {
             fontSize: "10px",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
-            color: "#5d6974",
+            color: "#66716a",
           }}
         >
           no signal
@@ -62,7 +63,7 @@ export default function OfflinePage() {
         >
           The desk is offline.
         </h1>
-        <p style={{ margin: "16px 0 0", fontSize: "14px", lineHeight: 1.6, color: "#29323b" }}>
+        <p style={{ margin: "16px 0 0", fontSize: "14px", lineHeight: 1.6, color: "#303a34" }}>
           Reconnect to send a reel or run research. Everything already transcribed is still saved on
           this device.
         </p>
@@ -74,7 +75,8 @@ export default function OfflinePage() {
             height: "44px",
             alignItems: "center",
             padding: "0 18px",
-            background: "#d43a1e",
+            borderRadius: "999px",
+            background: "#e0452a",
             color: "#fff",
             fontSize: "13px",
             fontWeight: 500,

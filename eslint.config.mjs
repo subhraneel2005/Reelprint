@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "src/components/motion/**",
+    "src/components/agents/**",
   ]),
 ]);
 

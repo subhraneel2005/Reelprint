@@ -41,7 +41,7 @@ export function Thumb({
               <span className="h-[55%] bg-ink/40" />
               <span className="h-[80%] bg-ink/40" />
             </span>
-            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
               {label ? `${label} · no still` : "no still"}
             </span>
           </div>

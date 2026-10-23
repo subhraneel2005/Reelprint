@@ -1,0 +1,34 @@
+# dependencies and build output
+node_modules
+.next
+out
+build
+coverage
+
+# local state, secrets and logs
+.data
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# repository metadata and docs
+.git
+.gitignore
+.github
+.vercel
+.DS_Store
+AGENTS.md
+README.md
+docs
+LICENSE
+opencode.json
+components.json
+
+# local tooling
+*.tsbuildinfo
+next-env.d.ts
+nvm.sh

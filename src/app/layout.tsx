@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { PwaRegister } from "@/components/PwaRegister";
+import { ToastProvider } from "@/components/ToastProvider";
 import { libraryStats } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#eceef0",
+  themeColor: "#eef0ec",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -69,9 +70,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${bricolage.variable} ${plex.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <AppShell stats={stats}>{children}</AppShell>
-        <InstallPrompt />
-        <PwaRegister />
+        <ToastProvider>
+          <AppShell stats={stats}>{children}</AppShell>
+          <InstallPrompt />
+          <PwaRegister />
+        </ToastProvider>
       </body>
     </html>
   );

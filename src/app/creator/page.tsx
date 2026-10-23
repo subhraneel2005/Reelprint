@@ -1,6 +1,8 @@
 import { Camera, KeyRound, Lock } from "lucide-react";
 import { ProfileForm } from "@/components/ProfileForm";
 import { Panel, SectionHead, Tag } from "@/components/Bits";
+import { AnimatedBadge } from "@/components/motion/animated-badge";
+import { TextReveal } from "@/components/motion/text-reveal";
 import { aiStatus } from "@/lib/ai";
 import { getProfile } from "@/lib/db";
 
@@ -49,59 +51,73 @@ export default function CreatorPage() {
 
   return (
     <div>
-      <header className="border-b border-ink pb-4">
+      <header>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="display text-[clamp(2rem,4.4vw,3rem)]">Creator</h1>
-            <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-muted">
+            <TextReveal
+              as="h1"
+              text="Creator"
+              split="word"
+              className="display text-[clamp(2.2rem,6vw,3.3rem)]"
+            />
+            <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
               The desk learns your niche, audience and voice here. Nothing needs an account; the
               profile is stored next to the archive.
             </p>
           </div>
-          <Tag tone={status.chat ? "line" : "signal"}>{status.chat ? "AI online" : "AI offline"}</Tag>
+          <AnimatedBadge status={status.chat ? "success" : "danger"} size="sm" pulse={false}>
+            {status.chat ? "AI online" : "AI offline"}
+          </AnimatedBadge>
         </div>
       </header>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_330px] lg:items-start">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px] lg:items-start">
         <ProfileForm initial={profile} />
 
         <div className="space-y-5">
           <section>
             <SectionHead title="Connections" aside="environment" />
             <Panel>
-              <div className={`border-b border-line px-3.5 py-3 ${status.openrouter ? "" : "bg-signal-soft"}`}>
-                <div
-                  className={`flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.1em] ${
-                    status.openrouter ? "text-ok" : "text-signal"
-                  }`}
+              <div
+                className={`border-b border-border/70 px-4 py-3.5 ${
+                  status.openrouter ? "" : "rounded-t-[26px] bg-signal-soft/60"
+                }`}
+              >
+                <AnimatedBadge
+                  status={status.openrouter ? "success" : "danger"}
+                  size="sm"
+                  pulse={false}
                 >
-                  <span className={`h-1.5 w-1.5 ${status.openrouter ? "bg-ok" : "bg-signal"}`} />
-                  {status.openrouter ? "OpenRouter is the only AI key you need" : "Add OpenRouter to turn on the AI"}
-                </div>
-                <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted">
+                  {status.openrouter ? "OpenRouter connected" : "OpenRouter missing"}
+                </AnimatedBadge>
+                <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
                   {status.openrouter
                     ? "Transcription, vision, embeddings, content DNA and research all run through the same key. OpenAI and Gemini are optional fallbacks."
                     : "OPENROUTER_API_KEY covers the full AI pipeline. OpenAI and Gemini are optional fallbacks, not requirements."}
                 </p>
               </div>
-              <ul className="divide-y divide-line">
+              <ul className="divide-y divide-border/60">
                 {keys.map((key) => (
-                  <li key={key.name} className="flex items-start gap-2.5 px-3.5 py-2.5">
-                    <span className={`mt-[5px] h-1.5 w-1.5 shrink-0 ${key.on ? "bg-ok" : "bg-line-strong"}`} />
+                  <li key={key.name} className="flex items-start gap-2.5 px-4 py-3">
+                    <span
+                      className={`mt-1.5 size-1.5 shrink-0 rounded-full ${key.on ? "bg-success" : "bg-border-strong"}`}
+                    />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <span className="text-[12px] font-medium">{key.name}</span>
-                        <span className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted">
+                        <Tag tone={key.on ? "ok" : key.optional ? "line" : "signal"}>
                           {key.on ? "set" : key.optional ? "optional" : "missing"}
-                        </span>
+                        </Tag>
                       </div>
-                      <div className="mt-0.5 font-mono text-[9px] text-muted">{key.env}</div>
-                      <div className="mt-0.5 text-[10.5px] text-muted">{key.use}</div>
+                      <div className="mt-0.5 font-mono text-[8.5px] text-muted-foreground">{key.env}</div>
+                      <div className="mt-0.5 text-[10.5px] leading-relaxed text-muted-foreground">
+                        {key.use}
+                      </div>
                     </div>
                   </li>
                 ))}
               </ul>
-              <div className="border-t border-line px-3.5 py-2.5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.06em] text-muted">
+              <div className="border-t border-border/70 px-4 py-3 font-mono text-[8px] uppercase leading-relaxed tracking-[0.06em] text-muted-foreground">
                 AI needs only OPENROUTER_API_KEY · YouTube and Supadata are optional · restart next dev
               </div>
             </Panel>
@@ -109,19 +125,21 @@ export default function CreatorPage() {
 
           <section>
             <SectionHead title="Instagram" aside="read-only" />
-            <Panel className="p-3.5">
+            <Panel className="p-4">
               <div className="flex items-start gap-2.5">
-                <Camera size={16} className="mt-0.5 shrink-0 text-signal" />
+                <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-signal/20 bg-signal-soft text-signal">
+                  <Camera size={15} />
+                </span>
                 <div>
                   <p className="text-[12.5px] font-medium">Account insights are not connected.</p>
-                  <p className="mt-1 text-[11.5px] leading-relaxed text-muted">
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
                     Meta only exposes your own media and insights through a reviewed app. A public Reel
                     search API does not exist. For now the desk personalises from what you send and the
                     profile above.
                   </p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-1.5 border border-line bg-paper px-2.5 py-2 font-mono text-[9px] uppercase tracking-[0.08em] text-muted">
+              <div className="mt-3 flex items-center gap-1.5 rounded-full border border-border/70 bg-background/60 px-2.5 py-1.5 font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted-foreground">
                 <Lock size={11} />
                 needs meta app review · not faked for the demo
               </div>
@@ -130,12 +148,12 @@ export default function CreatorPage() {
 
           <section>
             <SectionHead title="Link fetching" aside="fallbacks" />
-            <Panel className="p-3.5 text-[11.5px] leading-relaxed text-muted">
+            <Panel className="p-4 text-[11.5px] leading-relaxed text-muted-foreground">
               <p>
                 YouTube downloads work out of the box. Instagram and TikTok usually require a session,
                 so the desk tries, then asks for a transcript instead of failing silently.
               </p>
-              <ul className="mt-2.5 space-y-1.5 font-mono text-[9.5px] text-ink-2">
+              <ul className="mt-2.5 space-y-1.5 font-mono text-[9px] text-ink-2">
                 <li>· SUPADATA_API_KEY — cleanest Instagram path</li>
                 <li>· IG_COOKIES_FROM_BROWSER=chrome — local cookies</li>
                 <li>· IG_COOKIES_FILE=/path/cookies.txt — exported cookies</li>

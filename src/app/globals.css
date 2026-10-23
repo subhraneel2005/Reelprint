@@ -1,18 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #eceef0;
-  --paper-2: #e3e6e9;
-  --surface: #f7f8f9;
-  --ink: #11161b;
-  --ink-2: #29323b;
-  --muted: #5d6974;
-  --line: #c7ced5;
-  --line-strong: #98a3ad;
-  --signal: #d43a1e;
-  --signal-soft: #f7ded8;
-  --tape: #e8b33c;
-  --ok: #1f7a4d;
+  --paper: #eef0ec;
+  --paper-2: #e1e4df;
+  --surface: #fbfbf7;
+  --ink: #121614;
+  --ink-2: #303a34;
+  --muted-ink: #66716a;
+  --line: #d2d7d1;
+  --line-strong: #a5aea7;
+  --signal: #e0452a;
+  --signal-soft: #f9ded7;
+  --tape: #e7b84b;
+  --ok: #237a50;
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--signal);
+  --primary-foreground: #fffaf4;
+  --secondary: var(--paper-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-2);
+  --muted-foreground: var(--muted-ink);
+  --accent: var(--tape);
+  --accent-foreground: var(--ink);
+  --destructive: var(--signal);
+  --destructive-foreground: #fffaf4;
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --input: var(--line);
+  --ring: var(--signal);
+  --success: var(--ok);
 }
 
 @theme inline {
@@ -28,6 +49,26 @@
   --color-signal-soft: var(--signal-soft);
   --color-tape: var(--tape);
   --color-ok: var(--ok);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
   --font-sans: var(--font-plex);
   --font-display: var(--font-bricolage);
   --font-mono: var(--font-plex-mono);
@@ -39,7 +80,11 @@ html {
 }
 
 body {
-  background: var(--paper);
+  background:
+    radial-gradient(1000px 620px at 92% -12%, color-mix(in srgb, var(--tape) 20%, transparent), transparent 62%),
+    radial-gradient(820px 620px at -8% 8%, color-mix(in srgb, var(--signal) 7%, transparent), transparent 58%),
+    var(--paper);
+  background-attachment: fixed;
   color: var(--ink);
   min-height: 100dvh;
   font-family: var(--font-plex), system-ui, sans-serif;
@@ -57,7 +102,7 @@ body {
 
 :focus-visible {
   outline: 2px solid var(--signal);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 a,
@@ -77,12 +122,6 @@ select {
   }
 }
 
-@media (max-width: 767px) {
-  .btn {
-    min-height: 44px;
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
@@ -98,8 +137,9 @@ mark {
 .display {
   font-family: var(--font-bricolage), ui-sans-serif, sans-serif;
   font-weight: 600;
-  letter-spacing: -0.045em;
-  line-height: 0.92;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+  text-wrap: balance;
 }
 
 .timecode {
@@ -108,108 +148,130 @@ mark {
   letter-spacing: 0.02em;
 }
 
+.mono-label {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted-ink);
+}
+
 .tick-strip {
-  height: 5px;
+  height: 4px;
   background-image: repeating-linear-gradient(
     90deg,
-    var(--ink) 0px,
-    var(--ink) 9px,
-    transparent 9px,
-    transparent 17px
+    color-mix(in srgb, var(--ink) 72%, transparent) 0px,
+    color-mix(in srgb, var(--ink) 72%, transparent) 8px,
+    transparent 8px,
+    transparent 15px
   );
-  opacity: 0.85;
+  opacity: 0.7;
 }
 
 .dot-grid {
-  background-image: radial-gradient(var(--line-strong) 0.55px, transparent 0.55px);
-  background-size: 16px 16px;
-  background-position: -8px -8px;
+  background-image: radial-gradient(color-mix(in srgb, var(--line-strong) 70%, transparent) 0.6px, transparent 0.6px);
+  background-size: 18px 18px;
+  background-position: -9px -9px;
 }
 
 .card-shadow {
-  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--ink) 8%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--ink) 5%, transparent),
+    0 18px 40px -28px color-mix(in srgb, var(--ink) 28%, transparent);
 }
 
-.scanline {
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 3px,
-    color-mix(in srgb, var(--ink) 5%, transparent) 3px,
-    color-mix(in srgb, var(--ink) 5%, transparent) 4px
-  );
+.glass {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(20px) saturate(1.15);
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 @layer components {
-.input {
-  width: 100%;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  padding: 0.7rem 0.85rem;
-  font-size: 0.9rem;
-  outline: none;
-}
+  .input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0.72rem 0.9rem;
+    font-size: 0.9rem;
+    outline: none;
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease;
+  }
 
-.input::placeholder {
-  color: color-mix(in srgb, var(--muted) 75%, transparent);
-}
+  .input::placeholder {
+    color: color-mix(in srgb, var(--muted-ink) 78%, transparent);
+  }
 
-.input:focus {
-  border-color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--ink);
-}
+  .input:focus {
+    border-color: color-mix(in srgb, var(--ink) 55%, var(--line));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 14%, transparent);
+  }
 
-.input:focus-visible {
-  outline: none;
-}
+  .input:focus-visible {
+    outline: none;
+  }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: 1px solid var(--ink);
-  padding: 0.7rem 1rem;
-  font-size: 0.82rem;
-  font-weight: 500;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background-color 150ms ease,
-    color 150ms ease,
-    transform 150ms ease;
-}
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid var(--ink);
+    border-radius: 999px;
+    padding: 0.7rem 1.05rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease,
+      border-color 150ms ease,
+      transform 150ms ease;
+  }
 
-.btn:active {
-  transform: translateY(1px);
-}
+  .btn:active {
+    transform: translateY(1px) scale(0.985);
+  }
 
-.btn-primary {
-  background: var(--signal);
-  border-color: var(--signal);
-  color: #fff;
-}
+  .btn-primary {
+    background: var(--signal);
+    border-color: var(--signal);
+    color: #fff;
+  }
 
-.btn-primary:hover {
-  background: color-mix(in srgb, var(--signal) 86%, black);
-}
+  .btn-primary:hover {
+    background: color-mix(in srgb, var(--signal) 86%, black);
+  }
 
-.btn-ghost {
-  background: transparent;
-  border-color: var(--line-strong);
-  color: var(--ink);
-}
+  .btn-ghost {
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
 
-.btn-ghost:hover {
-  background: var(--surface);
-  border-color: var(--ink);
-}
+  .btn-ghost:hover {
+    background: var(--surface);
+    border-color: var(--ink);
+  }
 
-.btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 }
 
 .hairline {
@@ -222,8 +284,8 @@ mark {
 
 .link-quiet {
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent);
-  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--ink) 28%, transparent);
+  text-underline-offset: 4px;
 }
 
 .link-quiet:hover {

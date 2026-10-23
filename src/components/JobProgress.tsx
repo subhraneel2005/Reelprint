@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Circle, Minus, X } from "lucide-react";
 import type { Job } from "@/lib/types";
-import { cn } from "@/lib/util";
+import { TodoList, type TodoItem } from "@/components/agents/todo-list";
+import { AnimatedBadge } from "@/components/motion/animated-badge";
+import { Loader } from "@/components/motion/loader";
 
 export function JobProgress({
   jobId,
@@ -60,58 +61,65 @@ export function JobProgress({
   }, [jobId]);
 
   const steps = job?.steps ?? [];
-  const completed = steps.filter((step) => step.status === "done" || step.status === "skipped").length;
-  const progress = steps.length ? Math.round((completed / steps.length) * 100) : 0;
   const isError = job?.status === "error";
+  const isDone = job?.status === "done";
+  const items: TodoItem[] = steps.map((step) => ({
+    id: step.key,
+    title: step.label,
+    status:
+      step.status === "done"
+        ? "completed"
+        : step.status === "running"
+          ? "in-progress"
+          : step.status === "error"
+            ? "cancelled"
+            : step.status === "skipped"
+              ? "cancelled"
+              : "pending",
+    detail:
+      step.status === "error"
+        ? step.detail ?? "Stopped"
+        : step.detail,
+  }));
+
+  if (!job) {
+    return (
+      <div className="flex items-center gap-3 rounded-[22px] border border-border/80 bg-card px-4 py-3.5">
+        <Loader variant="dot-matrix" size={22} label="Queued" className="text-primary" />
+        <div>
+          <p className="text-[12px] font-medium text-ink">Opening the job</p>
+          <p className="text-[10px] text-muted-foreground">Waiting for the first status update.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="border border-line bg-paper">
-      <div className="flex items-center justify-between border-b border-line px-3 py-2">
-        <div className="flex items-center gap-2">
-          <span className={cn("h-1.5 w-1.5", isError ? "bg-signal" : "animate-pulse bg-signal")} />
-          <span className="font-mono text-[10px] uppercase tracking-[0.13em] text-ink">
-            {isError ? "stopped" : job?.status === "done" ? "complete" : `reading · ${job?.stage ?? "queued"}`}
-          </span>
-        </div>
-        <span className="timecode text-[10px] text-muted">{progress}%</span>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+        <AnimatedBadge
+          status={isError ? "danger" : isDone ? "success" : "loading"}
+          size="sm"
+          contentKey={job.status}
+        >
+          {isError ? "stopped" : isDone ? "complete" : `reading · ${job.stage ?? "queued"}`}
+        </AnimatedBadge>
+        <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-muted-foreground">
+          {steps.filter((step) => step.status === "done" || step.status === "skipped").length}/
+          {steps.length} steps
+        </span>
       </div>
-      <div className="h-[3px] w-full bg-paper-2">
-        <div
-          className="h-full bg-signal transition-all duration-500"
-          style={{ width: `${isError ? 100 : progress}%`, opacity: isError ? 0.35 : 1 }}
-        />
-      </div>
-      <ol className="divide-y divide-line/70">
-        {steps.map((step) => (
-          <li key={step.key} className="flex items-start gap-2.5 px-3 py-2">
-            <span className="mt-[2px] flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-              {step.status === "done" && <Check size={13} className="text-ok" strokeWidth={2.5} />}
-              {step.status === "running" && <span className="h-2 w-2 animate-pulse bg-signal" />}
-              {step.status === "error" && <X size={13} className="text-signal" strokeWidth={2.5} />}
-              {step.status === "skipped" && <Minus size={13} className="text-line-strong" />}
-              {step.status === "pending" && <Circle size={7} className="text-line-strong" />}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div
-                className={cn(
-                  "text-[12px] leading-tight",
-                  step.status === "pending" ? "text-muted" : "text-ink",
-                  step.status === "error" && "text-signal",
-                )}
-              >
-                {step.label}
-              </div>
-              {step.detail && (
-                <div className="mt-0.5 truncate font-mono text-[9.5px] text-muted" title={step.detail}>
-                  {step.detail}
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
-      </ol>
+      <TodoList
+        items={items}
+        title={isError ? "Analysis stopped" : isDone ? "Analysis complete" : "Analysis in progress"}
+        defaultOpen
+        collapseOnComplete
+        className="bg-card"
+      />
       {failed && (
-        <div className="border-t border-line px-3 py-2 font-mono text-[10px] text-signal">{failed}</div>
+        <p className="rounded-2xl border border-destructive/25 bg-destructive/5 px-3 py-2 font-mono text-[9.5px] text-destructive">
+          {failed}
+        </p>
       )}
     </div>
   );

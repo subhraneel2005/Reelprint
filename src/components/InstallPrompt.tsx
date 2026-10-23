@@ -62,23 +62,23 @@ export function InstallPrompt() {
   return (
     <aside
       aria-label="Install Reelprint"
-      className="fixed inset-x-3 bottom-[calc(5.6rem+env(safe-area-inset-bottom))] z-40 border border-ink bg-ink text-paper shadow-[0_14px_40px_rgba(17,22,27,0.24)] md:hidden"
+      className="fixed inset-x-3 bottom-[calc(5.6rem+env(safe-area-inset-bottom))] z-40 rounded-[24px] border border-ink/20 bg-ink text-primary-foreground shadow-[0_24px_60px_-20px_rgba(18,22,20,0.7)] md:hidden"
     >
       <div className="flex items-start gap-3 p-3.5">
-        <span className="mt-0.5 grid h-8 w-8 shrink-0 grid-cols-3 items-end gap-[2px] bg-signal p-[5px]" aria-hidden>
-          <span className="h-full bg-paper" />
-          <span className="h-[55%] bg-paper" />
-          <span className="h-[80%] bg-paper" />
+        <span className="mt-0.5 grid h-9 w-9 shrink-0 grid-cols-3 items-end gap-[2px] rounded-xl bg-signal p-[6px]" aria-hidden>
+          <span className="h-full rounded-[1px] bg-primary-foreground" />
+          <span className="h-[55%] rounded-[1px] bg-primary-foreground" />
+          <span className="h-[80%] rounded-[1px] bg-primary-foreground" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-medium leading-snug">Install Reelprint</p>
-          <p className="mt-0.5 text-[11.5px] leading-relaxed text-paper/65">
+          <p className="mt-0.5 text-[11.5px] leading-relaxed text-primary-foreground/65">
             Send reels straight from Instagram and YouTube. Opens full-screen, no address bar.
           </p>
           <button
             type="button"
             onClick={install}
-            className="mt-2.5 inline-flex h-8 items-center gap-1.5 bg-signal px-3 text-[11px] font-medium text-white active:opacity-80"
+            className="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-full bg-signal px-3.5 text-[11px] font-medium text-white active:opacity-80"
           >
             <Download size={13} />
             Add to home screen
@@ -88,7 +88,7 @@ export function InstallPrompt() {
           type="button"
           onClick={dismiss}
           aria-label="Not now"
-          className="-mr-1 -mt-1 grid h-8 w-8 place-items-center text-paper/50 active:text-paper"
+          className="-mr-1 -mt-1 grid h-8 w-8 place-items-center text-primary-foreground/50 active:text-primary-foreground"
         >
           <X size={15} />
         </button>

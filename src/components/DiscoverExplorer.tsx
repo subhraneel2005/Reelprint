@@ -1,12 +1,39 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, ArrowUpRight, Compass, Search } from "lucide-react";
+import { ArrowUpRight, Compass, Search, SlidersHorizontal } from "lucide-react";
 import type { YouTubeHit } from "@/lib/types";
 import { compactNumber, percent, timeAgo } from "@/lib/util";
 import { Empty, Tag } from "./Bits";
 import { AddToArchive } from "./AddToArchive";
 import { Thumb } from "./Thumb";
+import {
+  Alert,
+  AlertContent,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
+} from "@/components/motion/alert";
+import { AnimatedBadge } from "@/components/motion/animated-badge";
+import { BottomSheet } from "@/components/motion/bottom-sheet";
+import { StatefulButton } from "@/components/motion/button/stateful";
+import { Input } from "@/components/motion/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/motion/select";
+import { TextReveal } from "@/components/motion/text-reveal";
+import { TiltCard } from "@/components/motion/tilt-card";
+
+const WINDOWS = [
+  { value: "30", label: "30 days" },
+  { value: "90", label: "90 days" },
+  { value: "180", label: "6 months" },
+  { value: "365", label: "1 year" },
+];
 
 export function DiscoverExplorer({
   initialQuery,
@@ -24,6 +51,7 @@ export function DiscoverExplorer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(initialQuery);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const firstRun = useRef(true);
 
   const run = useCallback(
@@ -60,35 +88,43 @@ export function DiscoverExplorer({
     }
   }, [initialQuery, run]);
 
+  const filtersChanged = days !== 180 || minViews !== 2000;
+
   return (
     <div>
-      <header className="border-b border-ink pb-4">
+      <header>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="display text-[clamp(2rem,4.4vw,3rem)]">Discover</h1>
-            <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-muted">
+            <TextReveal
+              as="h1"
+              text="Discover"
+              split="word"
+              className="display text-[clamp(2.2rem,6vw,3.3rem)]"
+            />
+            <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
               Live YouTube Shorts, ranked by views per hour, like rate and recency relative to the
               rest of the result set. High engagement only, not raw vanity counts.
             </p>
           </div>
-          <span className="hidden font-mono text-[9px] uppercase tracking-[0.12em] text-muted sm:inline">
-            source · youtube data api
-          </span>
+          <AnimatedBadge status={youtubeReady ? "success" : "warning"} size="sm" pulse={false}>
+            {youtubeReady ? "live · youtube api" : "youtube key needed"}
+          </AnimatedBadge>
         </div>
       </header>
 
       {!youtubeReady && (
-        <div className="mt-4 flex items-start gap-2 border border-tape/60 bg-tape/20 px-3 py-2.5">
-          <AlertTriangle size={14} className="mt-[1px] shrink-0 text-ink" />
-          <div className="text-[12px] leading-relaxed">
-            <p className="font-medium">Live discovery is off until a YouTube key is added.</p>
-            <p className="mt-0.5 text-ink-2">
+        <Alert variant="warning" className="mt-4 rounded-[22px]" contentClassName="items-start">
+          <AlertIcon />
+          <AlertContent>
+            <AlertTitle>Live discovery is off until a YouTube key is added.</AlertTitle>
+            <AlertDescription>
               Create a free key in Google Cloud, enable YouTube Data API v3, then add{" "}
-              <code className="bg-paper px-1 py-0.5 font-mono text-[10.5px]">YOUTUBE_API_KEY=…</code> to{" "}
-              <code className="bg-paper px-1 py-0.5 font-mono text-[10.5px]">.env.local</code> and restart.
-            </p>
-          </div>
-        </div>
+              <code className="rounded bg-card px-1 py-0.5 font-mono text-[10.5px]">YOUTUBE_API_KEY=…</code>{" "}
+              to{" "}
+              <code className="rounded bg-card px-1 py-0.5 font-mono text-[10.5px]">.env.local</code> and restart.
+            </AlertDescription>
+          </AlertContent>
+        </Alert>
       )}
 
       <form
@@ -96,55 +132,72 @@ export function DiscoverExplorer({
           event.preventDefault();
           void run(query);
         }}
-        className="mt-4 border border-line bg-surface p-3"
+        className="card-shadow mt-4 rounded-[26px] border border-border/80 bg-card p-3"
       >
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-          <label className="relative flex-1">
-            <span className="sr-only">Search YouTube Shorts</span>
-            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="input h-11 pl-9 text-[13px]"
-              placeholder="e.g. coding workflow, AI side project, Figma tutorial"
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+          <Input
+            value={query}
+            onChange={setQuery}
+            leftIcon={<Search size={16} />}
+            className="flex-1"
+            classNames={{
+              field: "h-11 rounded-2xl bg-background/60",
+              input: "text-[13px]",
+            }}
+            placeholder="coding workflow, AI side project"
+            aria-label="Search YouTube Shorts"
+          />
+
+          <div className="hidden items-center gap-2 lg:flex">
+            <Filters
+              days={days}
+              setDays={setDays}
+              minViews={minViews}
+              setMinViews={setMinViews}
             />
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1.5 border border-line bg-paper px-2 py-1.5">
-              <span className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted">window</span>
-              <select
-                value={days}
-                onChange={(event) => setDays(Number(event.target.value))}
-                className="bg-transparent font-mono text-[10px] outline-none"
-              >
-                <option value={30}>30 days</option>
-                <option value={90}>90 days</option>
-                <option value={180}>6 months</option>
-                <option value={365}>1 year</option>
-              </select>
-            </label>
-            <label className="flex items-center gap-1.5 border border-line bg-paper px-2 py-1.5">
-              <span className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-muted">min views</span>
-              <input
-                value={minViews}
-                onChange={(event) => setMinViews(Number(event.target.value) || 0)}
-                inputMode="numeric"
-                className="w-14 bg-transparent font-mono text-[10px] outline-none"
-              />
-            </label>
+          </div>
+
+          <div className="flex items-center gap-2 lg:hidden">
             <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-border/80 bg-background/60 px-4 font-mono text-[9px] uppercase tracking-[0.08em] text-ink"
+            >
+              <SlidersHorizontal size={13} />
+              Filters
+              {filtersChanged && <span className="size-1.5 rounded-full bg-signal" />}
+            </button>
+            <StatefulButton
               type="submit"
               disabled={loading || !youtubeReady}
-              className="btn btn-primary h-11 w-full px-4 text-[11px] sm:w-auto"
+              state={loading ? "loading" : "idle"}
+              loadingText="Scoring"
+              size="md"
+              className="h-11 shrink-0 px-4"
+              icon={<Compass size={13} />}
             >
-              {loading ? "Scoring…" : "Find outliers"}
-              <Compass size={13} />
-            </button>
+              Find
+            </StatefulButton>
           </div>
+
+          <StatefulButton
+            type="submit"
+            disabled={loading || !youtubeReady}
+            state={loading ? "loading" : "idle"}
+            loadingText="Scoring"
+            size="md"
+            className="hidden h-11 shrink-0 px-5 lg:inline-flex"
+            icon={<Compass size={13} />}
+          >
+            Find outliers
+          </StatefulButton>
         </div>
+
         {topics.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line pt-2">
-            <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted">from your archive</span>
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-border/70 pt-2.5">
+            <span className="px-1 font-mono text-[8.5px] uppercase tracking-[0.1em] text-muted-foreground">
+              from your archive
+            </span>
             {topics.slice(0, 7).map((topic) => (
               <button
                 key={topic.topic}
@@ -153,7 +206,7 @@ export function DiscoverExplorer({
                   setQuery(topic.topic);
                   void run(topic.topic);
                 }}
-                className="border border-line bg-paper px-1.5 py-1 font-mono text-[9.5px] hover:border-ink"
+                className="rounded-full border border-border/80 bg-background/60 px-2.5 py-1 font-mono text-[9px] text-ink-2 transition-colors hover:border-ink/40"
               >
                 {topic.topic}
               </button>
@@ -162,17 +215,48 @@ export function DiscoverExplorer({
         )}
       </form>
 
+      <BottomSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        snapPoints={["auto"]}
+        title="Discovery filters"
+        description="Keep the search broad. The scorer finds the velocity inside the window."
+      >
+        <div className="space-y-4 pt-3">
+          <Filters
+            days={days}
+            setDays={setDays}
+            minViews={minViews}
+            setMinViews={setMinViews}
+            stacked
+          />
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(false)}
+            className="btn btn-primary h-11 w-full"
+          >
+            Apply filters
+          </button>
+        </div>
+      </BottomSheet>
+
       {error && (
-        <div className="mt-4 border border-signal/40 bg-signal-soft px-3 py-2 text-[12px] text-signal">{error}</div>
+        <Alert variant="destructive" className="mt-4 rounded-[22px]" contentClassName="items-start">
+          <AlertIcon />
+          <AlertContent>
+            <AlertTitle>Discovery stopped</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </AlertContent>
+        </Alert>
       )}
 
       {loading && (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2, 3, 4, 5].map((row) => (
-            <div key={row} className="animate-pulse border border-line bg-surface p-2">
-              <div className="aspect-video bg-paper-2" />
-              <div className="mt-2 h-2 w-1/3 bg-paper-2" />
-              <div className="mt-2 h-3 w-5/6 bg-paper-2" />
+            <div key={row} className="animate-pulse rounded-[24px] border border-border/60 bg-card p-2">
+              <div className="aspect-video rounded-xl bg-paper-2" />
+              <div className="mt-3 h-2 w-1/3 rounded-full bg-paper-2" />
+              <div className="mt-2 h-3 w-5/6 rounded-full bg-paper-2" />
             </div>
           ))}
         </div>
@@ -180,11 +264,13 @@ export function DiscoverExplorer({
 
       {!loading && hits && (
         <section className="mt-7">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted">
-            <span>
-              {hits.length} shorts · “{searched}” · sorted by score
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <AnimatedBadge status="neutral" size="sm">
+              {hits.length} shorts · “{searched}”
+            </AnimatedBadge>
+            <span className="font-mono text-[8.5px] uppercase tracking-[0.1em] text-muted-foreground">
+              views/hour · like rate · recency
             </span>
-            <span>views/hour · like rate · recency</span>
           </div>
           {hits.length === 0 ? (
             <Empty
@@ -194,53 +280,68 @@ export function DiscoverExplorer({
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {hits.map((hit) => (
-                <article key={hit.id} className="group border border-line bg-surface p-2">
-                  <a href={hit.url} target="_blank" rel="noreferrer" className="block">
-                    <div className="relative aspect-video overflow-hidden">
-                      <Thumb
-                        remote={hit.thumbnail}
-                        alt={hit.title}
-                        label="youtube"
-                        className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.02]"
-                      />
-                      <span className="timecode absolute left-1.5 top-1.5 bg-ink/85 px-1.5 py-0.5 text-[9px] text-paper">
-                        {hit.duration ? `${Math.floor(hit.duration / 60)}:${String(Math.round(hit.duration % 60)).padStart(2, "0")}` : "short"}
-                      </span>
-                      <span
-                        className="timecode absolute right-1.5 top-1.5 px-1.5 py-0.5 text-[10px] text-ink"
-                        style={{ background: hit.score >= 70 ? "var(--tape)" : "color-mix(in srgb, var(--paper) 94%, transparent)" }}
-                        title={`Outlier score ${hit.score}/100`}
-                      >
-                        {hit.score}
-                      </span>
-                    </div>
-                  </a>
-                  <div className="px-1 pb-1 pt-2">
-                    <div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.06em] text-muted">
-                      <span className="truncate">{hit.channel}</span>
-                      <span>{timeAgo(hit.published_at)}</span>
-                    </div>
-                    <a href={hit.url} target="_blank" rel="noreferrer">
-                      <h3 className="mt-1 line-clamp-2 text-[12.5px] font-medium leading-snug group-hover:text-signal">
-                        {hit.title}
-                      </h3>
+                <TiltCard
+                  key={hit.id}
+                  max={4}
+                  className="group rounded-[24px] border border-border/70 bg-card p-2 card-shadow"
+                >
+                  <article>
+                    <a href={hit.url} target="_blank" rel="noreferrer" className="block">
+                      <div className="relative aspect-video overflow-hidden rounded-xl">
+                        <Thumb
+                          remote={hit.thumbnail}
+                          alt={hit.title}
+                          label="youtube"
+                          className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
+                        <span className="timecode absolute left-1.5 top-1.5 rounded-full bg-ink/80 px-2 py-1 text-[8.5px] text-primary-foreground backdrop-blur">
+                          {hit.duration
+                            ? `${Math.floor(hit.duration / 60)}:${String(Math.round(hit.duration % 60)).padStart(2, "0")}`
+                            : "short"}
+                        </span>
+                        <Tag
+                          tone={hit.score >= 70 ? "tape" : "line"}
+                          className="timecode absolute right-1.5 top-1.5 border-transparent bg-card/90 px-2 py-1 text-[10px] normal-case tracking-normal backdrop-blur"
+                        >
+                          {hit.score}
+                        </Tag>
+                      </div>
                     </a>
-                    <div className="mt-2 grid grid-cols-3 gap-1 border-y border-line/70 py-1.5 font-mono text-[9px] text-muted">
-                      <span>{compactNumber(hit.views)} views</span>
-                      <span>{percent(hit.like_rate)} likes</span>
-                      <span>{compactNumber(Math.round(hit.views_per_hour))}/hr</span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <Tag tone={hit.outlier >= 2 ? "signal" : "line"}>{hit.outlier.toFixed(1)}× pace</Tag>
-                      <div className="flex items-center gap-2">
-                        <AddToArchive url={hit.url} />
-                        <a href={hit.url} target="_blank" rel="noreferrer" aria-label="Open on YouTube">
-                          <ArrowUpRight size={13} className="text-muted hover:text-signal" />
-                        </a>
+                    <div className="px-1 pb-1 pt-2.5">
+                      <div className="flex items-center justify-between gap-2 font-mono text-[8.5px] uppercase tracking-[0.06em] text-muted-foreground">
+                        <span className="truncate">{hit.channel}</span>
+                        <span className="shrink-0">{timeAgo(hit.published_at)}</span>
+                      </div>
+                      <a href={hit.url} target="_blank" rel="noreferrer">
+                        <h3 className="mt-1 line-clamp-2 text-[12.5px] font-medium leading-snug text-ink transition-colors group-hover:text-signal">
+                          {hit.title}
+                        </h3>
+                      </a>
+                      <div className="mt-2 grid grid-cols-3 gap-1 border-y border-border/60 py-1.5 font-mono text-[8.5px] text-muted-foreground">
+                        <span>{compactNumber(hit.views)} views</span>
+                        <span>{percent(hit.like_rate)} likes</span>
+                        <span>{compactNumber(Math.round(hit.views_per_hour))}/hr</span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <Tag tone={hit.outlier >= 2 ? "signal" : "line"}>
+                          {hit.outlier.toFixed(1)}× pace
+                        </Tag>
+                        <div className="flex items-center gap-2">
+                          <AddToArchive url={hit.url} />
+                          <a
+                            href={hit.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label="Open on YouTube"
+                            className="grid size-7 place-items-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:border-ink/40 hover:text-signal"
+                          >
+                            <ArrowUpRight size={13} />
+                          </a>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </article>
+                  </article>
+                </TiltCard>
               ))}
             </div>
           )}
@@ -268,13 +369,65 @@ export function DiscoverExplorer({
               ) : undefined
             }
           />
-          <p className="mt-4 border border-line bg-paper px-3 py-2.5 text-[11.5px] leading-relaxed text-muted">
+          <p className="mt-4 rounded-[20px] border border-border/70 bg-card/60 px-3.5 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
             Instagram Reels cannot be searched through Meta&apos;s public API. For now, send the Reels
             that matter into the archive and use this desk for live YouTube outliers; an Apify or
             Meta-approved connection can be added without changing the rest of the pipeline.
           </p>
         </section>
       )}
+    </div>
+  );
+}
+
+function Filters({
+  days,
+  setDays,
+  minViews,
+  setMinViews,
+  stacked = false,
+}: {
+  days: number;
+  setDays: (days: number) => void;
+  minViews: number;
+  setMinViews: (views: number) => void;
+  stacked?: boolean;
+}) {
+  return (
+    <div className={stacked ? "space-y-3" : "flex items-center gap-2"}>
+      <div className={stacked ? "space-y-1.5" : "w-[132px]"}>
+        <span className="px-1 font-mono text-[8px] uppercase tracking-[0.1em] text-muted-foreground">
+          window
+        </span>
+        <Select value={String(days)} onValueChange={(value) => setDays(Number(value))}>
+          <SelectTrigger className="h-11 rounded-2xl border-border/80 bg-background/60 px-3 font-mono text-[9px] uppercase tracking-[0.06em]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {WINDOWS.map((window) => (
+              <SelectItem key={window.value} value={window.value}>
+                {window.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className={stacked ? "space-y-1.5" : "w-[132px]"}>
+        <span className="px-1 font-mono text-[8px] uppercase tracking-[0.1em] text-muted-foreground">
+          min views
+        </span>
+        <Input
+          value={String(minViews)}
+          onChange={(value) => setMinViews(Number(value) || 0)}
+          inputMode="numeric"
+          classNames={{
+            field: "h-11 rounded-2xl bg-background/60",
+            input: "font-mono text-[10px]",
+          }}
+          aria-label="Minimum views"
+        />
+      </div>
     </div>
   );
 }
