@@ -55,6 +55,7 @@ The importer reads `.data/reelprint.db`, updates matching rows, and leaves the f
 
 - **Content DNA** for a Reel, Short, or pasted transcript: topic, hook, format, pacing, structure, CTA, audience, emotion, visual style, keywords, and reusability.
 - **Research brief** that reverse-engineers the source into a shooting blueprint, caption formula, hook variants, and six filmable ideas.
+- **Full scripts on demand** for any idea: spoken script, shot list, caption, hashtags, CTA, and estimated duration.
 - **Searchable archive** using Postgres full-text search plus local vector ranking.
 - **Live outlier discovery** for YouTube Shorts, ranked by pace, like rate, and recency.
 - **Creator profile** that grounds every idea in your niche, audience, pillars, voice, and current goal.

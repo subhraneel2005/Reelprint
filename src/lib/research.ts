@@ -1,8 +1,8 @@
 import { chatJSON } from "./ai";
 import { getProfile, getReel, getResearch, saveResearch } from "./db";
-import { normaliseResearch, researchPrompt, researchSchema } from "./prompts";
+import { normaliseResearch, researchPrompt, researchSchema, scriptPrompt, scriptSchema } from "./prompts";
 import { discoverSimilar } from "./youtube";
-import type { Reel, ResearchResult, YouTubeHit } from "./types";
+import type { GeneratedScript, Reel, ResearchIdea, ResearchResult, YouTubeHit } from "./types";
 
 function fallbackResearch(reel: Reel): ResearchResult {
   const dna = reel.dna;
@@ -103,4 +103,78 @@ export async function reverseEngineer(
 
 export async function getCachedResearch(reelId: string) {
   return await getResearch(reelId);
+}
+
+function fallbackIdeaScript(reel: Reel, idea: ResearchIdea): GeneratedScript {
+  const topic = reel.dna?.topic || reel.title || "this topic";
+  const cta = reel.dna?.cta || "Tell me which one you want next.";
+  const script = [
+    idea.hook,
+    `Here is the part most people skip: ${idea.angle}`,
+    `The format is simple. Show the starting point, make the change on screen, and let the result do the explaining. Keep the camera moving and cut every pause.`,
+    `If you are working on ${topic.toLowerCase()}, try this version before you add anything else. One idea, one change, one clear result.`,
+    cta,
+  ].join("\n\n");
+
+  return {
+    title: idea.title,
+    hook: idea.hook,
+    script,
+    shot_list: [
+      {
+        time: "0-3s",
+        shot: "Open on the result or the problem, already in frame.",
+        on_screen: "Start here",
+      },
+      {
+        time: "3-15s",
+        shot: "Show the current way, then make the first change on camera.",
+        on_screen: "The change",
+      },
+      {
+        time: "15-35s",
+        shot: "Walk through the process at real speed. Cut dead air.",
+        on_screen: "Do this",
+      },
+      {
+        time: "35-45s",
+        shot: "Land the result and deliver the single takeaway.",
+        on_screen: "The result",
+      },
+    ],
+    caption: `${idea.title}. ${idea.angle}`,
+    hashtags: ["#contentstrategy", "#shortform", "#creators", "#buildinpublic"],
+    cta,
+    estimated_duration: "45 sec",
+  };
+}
+
+export async function generateIdeaScript(
+  reelId: string,
+  ideaIndex: number,
+): Promise<{ script: GeneratedScript; warning?: string }> {
+  const [reel, research, profile] = await Promise.all([
+    getReel(reelId),
+    getResearch(reelId),
+    getProfile(),
+  ]);
+
+  if (!reel) throw new Error("Reel not found");
+  if (!research) throw new Error("Build the research brief before writing a script");
+
+  const idea = research.ideas[ideaIndex];
+  if (!idea) throw new Error("Idea not found. Refresh the research brief and try again.");
+
+  try {
+    const script = await chatJSON(
+      { ...scriptPrompt(reel, profile, idea), maxTokens: 3200, temperature: 0.55 },
+      scriptSchema,
+    );
+    return { script };
+  } catch (error) {
+    return {
+      script: fallbackIdeaScript(reel, idea),
+      warning: `Model output unavailable, used a structural draft: ${(error as Error).message}`,
+    };
+  }
 }

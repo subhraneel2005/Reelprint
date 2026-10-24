@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Profile, Reel, ReelDna, ResearchResult, YouTubeHit } from "./types";
+import type { Profile, Reel, ReelDna, ResearchIdea, ResearchResult, YouTubeHit } from "./types";
 import { truncate } from "./util";
 
 export const dnaSchema = z.object({
@@ -53,6 +53,25 @@ export const researchSchema = z.object({
   ideas: z.array(ideaSchema).default([]),
   do_next: z.array(z.string()).default([]),
   discovery_queries: z.array(z.string()).default([]),
+});
+
+export const scriptSchema = z.object({
+  title: z.string().default(""),
+  hook: z.string().default(""),
+  script: z.string().default(""),
+  shot_list: z
+    .array(
+      z.object({
+        time: z.string().default(""),
+        shot: z.string().default(""),
+        on_screen: z.string().default(""),
+      }),
+    )
+    .default([]),
+  caption: z.string().default(""),
+  hashtags: z.array(z.string()).default([]),
+  cta: z.string().default(""),
+  estimated_duration: z.string().default(""),
 });
 
 export function dnaPrompt(reel: Reel): { system: string; user: string } {
@@ -190,6 +209,56 @@ Rules:
           views_per_hour: Math.round(hit.views_per_hour),
           score: hit.score,
         })),
+      },
+      null,
+      2,
+    ),
+  };
+}
+
+export function scriptPrompt(
+  reel: Reel,
+  profile: Profile,
+  idea: ResearchIdea,
+): { system: string; user: string } {
+  return {
+    system: `You are a short-form scriptwriter. You receive one chosen idea, the source reel that inspired its structure, and the creator's profile. Write the complete, filmable script for that idea.
+
+Return one JSON object with exactly these keys:
+{
+ "title": string,
+ "hook": string,
+ "script": string,
+ "shot_list": [{"time": string, "shot": string, "on_screen": string}],
+ "caption": string,
+ "hashtags": string[],
+ "cta": string,
+ "estimated_duration": string
+}
+
+Rules:
+- "script" must be the complete word-for-word spoken narration, not an outline, not bullet points, and not stage directions.
+- Open with the exact "hook" from the chosen idea. Earn attention in the first sentence.
+- Aim for 30-60 seconds: roughly 90-160 spoken words. Keep sentences short and natural to say out loud.
+- Write in the creator's voice when a profile is provided. Stay inside their niche and pillars.
+- Borrow the source's structure, not its topic. Do not copy the source's wording or claims.
+- "shot_list" has 4-6 entries that map the script to concrete shots: what is on screen, what changes, and any short on-screen text. Keep on-screen text under 8 words.
+- "caption" is one or two lines. "hashtags" is 5-8 relevant tags, each beginning with #. "cta" is the single action to ask for.
+- "estimated_duration" looks like "42 sec".
+- No emojis, no markdown, no hype phrases, no invented numbers or results.
+- If the profile is empty, use the source reel's topic and pillars so the idea still feels native to the creator.`,
+    user: JSON.stringify(
+      {
+        creator: profile,
+        source: {
+          title: reel.title,
+          caption: reel.caption,
+          transcript: truncate(reel.transcript ?? "", 6000),
+          visual_description: reel.visual_summary,
+          duration_seconds: reel.duration,
+          dna: reel.dna,
+        },
+        chosen_idea: idea,
       },
       null,
       2,

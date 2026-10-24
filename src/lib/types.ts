@@ -104,6 +104,17 @@ export type ResearchIdea = {
   difficulty: "low" | "medium" | "high";
 };
 
+export type GeneratedScript = {
+  title: string;
+  hook: string;
+  script: string;
+  shot_list: { time: string; shot: string; on_screen: string }[];
+  caption: string;
+  hashtags: string[];
+  cta: string;
+  estimated_duration: string;
+};
+
 export type ResearchResult = {
   why_it_works: {
     hook: string;

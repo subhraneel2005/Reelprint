@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import type { ResearchResult, YouTubeHit } from "@/lib/types";
 import { compactNumber, percent } from "@/lib/util";
-import { Panel, Tag } from "./Bits";
+import { IdeaScriptCard } from "./IdeaScriptCard";
+import { Panel } from "./Bits";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -257,41 +258,12 @@ export function ResearchPanel({
         <TabsContent value="ideas" className="mt-0 p-5">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="text-sm font-medium">Six ideas you can film</h3>
-            <span className="text-xs text-muted-foreground">{result.ideas.length} scripts</span>
+            <span className="text-xs text-muted-foreground">Write any script</span>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {result.ideas.map((idea, index) => (
-              <article
-                key={index}
-                className={cn(
-                  "rounded-xl border p-4",
-                  index === 0 && "border-primary/30 bg-primary/5",
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-mono text-xs text-primary">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <Tag
-                    tone={
-                      idea.difficulty === "low"
-                        ? "line"
-                        : idea.difficulty === "high"
-                          ? "signal"
-                          : "tape"
-                    }
-                  >
-                    {idea.difficulty}
-                  </Tag>
-                </div>
-                <h4 className="mt-2 text-sm font-medium leading-snug">{idea.title}</h4>
-                <p className="mt-2 border-l-2 border-primary pl-2.5 text-sm leading-snug">
-                  “{idea.hook}”
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{idea.angle}</p>
-                <p className="mt-2 text-xs font-medium">{idea.format}</p>
-              </article>
+              <IdeaScriptCard key={index} reelId={reelId} idea={idea} index={index} />
             ))}
           </div>
         </TabsContent>
