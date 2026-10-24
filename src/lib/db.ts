@@ -1,6 +1,8 @@
-import { DatabaseSync } from "node:sqlite";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { getDb } from "./postgres";
+import { jobs, profile, reels, research } from "./schema";
 import type {
   Job,
   JobStep,
@@ -13,163 +15,45 @@ import type {
 } from "./types";
 
 const DATA_DIR = join(process.cwd(), ".data");
-const DB_PATH = join(DATA_DIR, "reelprint.db");
-
-type Row = Record<string, unknown>;
-
-function ensureDataDir() {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-}
-
-function initDb() {
-  ensureDataDir();
-  const db = new DatabaseSync(DB_PATH);
-  db.exec(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA foreign_keys = ON;
-
-    CREATE TABLE IF NOT EXISTS reels (
-      id TEXT PRIMARY KEY,
-      url TEXT NOT NULL UNIQUE,
-      platform TEXT NOT NULL DEFAULT 'other',
-      external_id TEXT,
-      author TEXT,
-      author_url TEXT,
-      caption TEXT,
-      title TEXT,
-      transcript TEXT,
-      transcript_source TEXT,
-      visual_summary TEXT,
-      duration REAL,
-      thumbnail TEXT,
-      posted_at TEXT,
-      views INTEGER,
-      likes INTEGER,
-      comments INTEGER,
-      shares INTEGER,
-      followers INTEGER,
-      engagement_json TEXT,
-      dna_json TEXT,
-      topics TEXT,
-      embedding BLOB,
-      embedding_model TEXT,
-      status TEXT NOT NULL DEFAULT 'queued',
-      error TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS reels_status_idx ON reels(status);
-    CREATE INDEX IF NOT EXISTS reels_platform_idx ON reels(platform);
-
-    CREATE VIRTUAL TABLE IF NOT EXISTS reels_fts USING fts5(
-      title,
-      caption,
-      transcript,
-      visual_summary,
-      author,
-      topics,
-      tokenize = 'porter unicode61'
-    );
-
-    CREATE TRIGGER IF NOT EXISTS reels_fts_ai AFTER INSERT ON reels BEGIN
-      INSERT INTO reels_fts(rowid, title, caption, transcript, visual_summary, author, topics)
-      VALUES (new.rowid, new.title, new.caption, new.transcript, new.visual_summary, new.author, new.topics);
-    END;
-
-    CREATE TRIGGER IF NOT EXISTS reels_fts_ad AFTER DELETE ON reels BEGIN
-      DELETE FROM reels_fts WHERE rowid = old.rowid;
-    END;
-
-    CREATE TRIGGER IF NOT EXISTS reels_fts_au AFTER UPDATE ON reels BEGIN
-      DELETE FROM reels_fts WHERE rowid = old.rowid;
-      INSERT INTO reels_fts(rowid, title, caption, transcript, visual_summary, author, topics)
-      VALUES (new.rowid, new.title, new.caption, new.transcript, new.visual_summary, new.author, new.topics);
-    END;
-
-    CREATE TABLE IF NOT EXISTS jobs (
-      id TEXT PRIMARY KEY,
-      reel_id TEXT NOT NULL,
-      status TEXT NOT NULL,
-      stage TEXT NOT NULL,
-      steps_json TEXT NOT NULL,
-      error TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS research (
-      reel_id TEXT PRIMARY KEY,
-      result_json TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS profile (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      handle TEXT NOT NULL DEFAULT '',
-      niche TEXT NOT NULL DEFAULT '',
-      audience TEXT NOT NULL DEFAULT '',
-      pillars_json TEXT NOT NULL DEFAULT '[]',
-      voice TEXT NOT NULL DEFAULT '',
-      avoid TEXT NOT NULL DEFAULT '',
-      goal TEXT NOT NULL DEFAULT '',
-      updated_at TEXT NOT NULL
-    );
-  `);
-  return db;
-}
-
-const globalForDb = globalThis as unknown as { __reelprintDb?: DatabaseSync };
-
-export function getDb(): DatabaseSync {
-  if (!globalForDb.__reelprintDb) {
-    globalForDb.__reelprintDb = initDb();
-  }
-  return globalForDb.__reelprintDb;
-}
 
 function now() {
   return new Date().toISOString();
 }
 
-function parseJson<T>(value: unknown, fallback: T): T {
-  if (typeof value !== "string" || !value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
+function iso(value: string | Date | null | undefined) {
+  if (!value) return new Date(0).toISOString();
+  return new Date(value).toISOString();
 }
 
-function mapReel(row: Row): Reel {
+function mapReel(row: typeof reels.$inferSelect): Reel {
   return {
-    id: String(row.id),
-    url: String(row.url),
+    id: row.id,
+    url: row.url,
     platform: row.platform as Reel["platform"],
-    external_id: (row.external_id as string) ?? null,
-    author: (row.author as string) ?? null,
-    author_url: (row.author_url as string) ?? null,
-    caption: (row.caption as string) ?? null,
-    title: (row.title as string) ?? null,
-    transcript: (row.transcript as string) ?? null,
-    transcript_source: (row.transcript_source as string) ?? null,
-    visual_summary: (row.visual_summary as string) ?? null,
+    external_id: row.externalId,
+    author: row.author,
+    author_url: row.authorUrl,
+    caption: row.caption,
+    title: row.title,
+    transcript: row.transcript,
+    transcript_source: row.transcriptSource,
+    visual_summary: row.visualSummary,
     duration: row.duration === null ? null : Number(row.duration),
-    thumbnail: (row.thumbnail as string) ?? null,
-    posted_at: (row.posted_at as string) ?? null,
-    views: row.views === null ? null : Number(row.views),
-    likes: row.likes === null ? null : Number(row.likes),
-    comments: row.comments === null ? null : Number(row.comments),
-    shares: row.shares === null ? null : Number(row.shares),
-    followers: row.followers === null ? null : Number(row.followers),
-    engagement: parseJson<Reel["engagement"]>(row.engagement_json, null),
-    dna: parseJson<ReelDna | null>(row.dna_json, null),
-    topics: (row.topics as string) ?? null,
-    embedding_model: (row.embedding_model as string) ?? null,
-    status: row.status as ReelStatus,
-    error: (row.error as string) ?? null,
-    created_at: String(row.created_at),
-    updated_at: String(row.updated_at),
+    thumbnail: row.thumbnail,
+    posted_at: row.postedAt,
+    views: row.views,
+    likes: row.likes,
+    comments: row.comments,
+    shares: row.shares,
+    followers: row.followers,
+    engagement: row.engagement ?? null,
+    dna: (row.dna as ReelDna | null) ?? null,
+    topics: row.topics,
+    embedding_model: row.embeddingModel,
+    status: row.status,
+    error: row.error,
+    created_at: iso(row.createdAt),
+    updated_at: iso(row.updatedAt),
   };
 }
 
@@ -196,54 +80,49 @@ export type ReelInput = {
   engagement?: Reel["engagement"];
   dna?: ReelDna | null;
   topics?: string | null;
-  embedding?: Uint8Array | null;
+  embedding?: number[] | null;
   embedding_model?: string | null;
   status?: ReelStatus;
   error?: string | null;
 };
 
-export function insertReel(input: ReelInput): Reel {
-  const db = getDb();
+export async function insertReel(input: ReelInput): Promise<Reel> {
   const ts = now();
-  db.prepare(
-    `INSERT INTO reels (
-      id, url, platform, external_id, author, author_url, caption, title, transcript, transcript_source,
-      visual_summary, duration, thumbnail, posted_at, views, likes, comments, shares, followers,
-      engagement_json, dna_json, topics, embedding, embedding_model, status, error, created_at, updated_at
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-  ).run(
-    input.id,
-    input.url,
-    input.platform,
-    input.external_id ?? null,
-    input.author ?? null,
-    input.author_url ?? null,
-    input.caption ?? null,
-    input.title ?? null,
-    input.transcript ?? null,
-    input.transcript_source ?? null,
-    input.visual_summary ?? null,
-    input.duration ?? null,
-    input.thumbnail ?? null,
-    input.posted_at ?? null,
-    input.views ?? null,
-    input.likes ?? null,
-    input.comments ?? null,
-    input.shares ?? null,
-    input.followers ?? null,
-    input.engagement ? JSON.stringify(input.engagement) : null,
-    input.dna ? JSON.stringify(input.dna) : null,
-    input.topics ?? null,
-    input.embedding ?? null,
-    input.embedding_model ?? null,
-    input.status ?? "queued",
-    input.error ?? null,
-    ts,
-    ts,
-  );
-  const reel = getReel(input.id);
-  if (!reel) throw new Error("Failed to insert reel");
-  return reel;
+  const [row] = await getDb()
+    .insert(reels)
+    .values({
+      id: input.id,
+      url: input.url,
+      platform: input.platform,
+      externalId: input.external_id ?? null,
+      author: input.author ?? null,
+      authorUrl: input.author_url ?? null,
+      caption: input.caption ?? null,
+      title: input.title ?? null,
+      transcript: input.transcript ?? null,
+      transcriptSource: input.transcript_source ?? null,
+      visualSummary: input.visual_summary ?? null,
+      duration: input.duration ?? null,
+      thumbnail: input.thumbnail ?? null,
+      postedAt: input.posted_at ?? null,
+      views: input.views ?? null,
+      likes: input.likes ?? null,
+      comments: input.comments ?? null,
+      shares: input.shares ?? null,
+      followers: input.followers ?? null,
+      engagement: input.engagement ?? null,
+      dna: input.dna ?? null,
+      topics: input.topics ?? null,
+      embedding: input.embedding ?? null,
+      embeddingModel: input.embedding_model ?? null,
+      status: input.status ?? "queued",
+      error: input.error ?? null,
+      createdAt: ts,
+      updatedAt: ts,
+    })
+    .returning();
+  if (!row) throw new Error("Failed to insert reel");
+  return mapReel(row);
 }
 
 const UPDATABLE = new Set([
@@ -271,63 +150,97 @@ const UPDATABLE = new Set([
   "error",
 ]);
 
-export function updateReel(id: string, patch: Record<string, unknown>): void {
-  const entries = Object.entries(patch).filter(([key]) => UPDATABLE.has(key));
-  if (!entries.length) return;
-  const sets = entries.map(([key]) => `${key} = ?`).join(", ");
-  const values = entries.map(([, value]) => {
-    if (value === undefined) return null;
-    if (value && typeof value === "object" && !(value instanceof Uint8Array)) {
-      return JSON.stringify(value);
+export async function updateReel(id: string, patch: Record<string, unknown>): Promise<void> {
+  const next: Partial<typeof reels.$inferInsert> = {};
+  for (const [key, value] of Object.entries(patch)) {
+    if (!UPDATABLE.has(key)) continue;
+    switch (key) {
+      case "author_url":
+        next.authorUrl = value as string | null;
+        break;
+      case "transcript_source":
+        next.transcriptSource = value as string | null;
+        break;
+      case "visual_summary":
+        next.visualSummary = value as string | null;
+        break;
+      case "posted_at":
+        next.postedAt = value as string | null;
+        break;
+      case "engagement_json":
+        next.engagement = value as Reel["engagement"];
+        break;
+      case "dna_json":
+        next.dna = value as ReelDna | null;
+        break;
+      case "embedding_model":
+        next.embeddingModel = value as string | null;
+        break;
+      case "embedding":
+        next.embedding =
+          value instanceof Float32Array || value instanceof Uint8Array
+            ? Array.from(value)
+            : (value as number[] | null);
+        break;
+      case "status":
+        next.status = value as ReelStatus;
+        break;
+      default:
+        (next as Record<string, unknown>)[key] = value;
     }
-    return value;
-  });
-  getDb()
-    .prepare(`UPDATE reels SET ${sets}, updated_at = ? WHERE id = ?`)
-    .run(...(values as never[]), now(), id);
+  }
+  if (!Object.keys(next).length) return;
+  await getDb()
+    .update(reels)
+    .set({ ...next, updatedAt: now() })
+    .where(eq(reels.id, id));
 }
 
-export function getReel(id: string): Reel | null {
-  const row = getDb().prepare("SELECT * FROM reels WHERE id = ?").get(id) as Row | undefined;
+export async function getReel(id: string): Promise<Reel | null> {
+  const [row] = await getDb().select().from(reels).where(eq(reels.id, id)).limit(1);
   return row ? mapReel(row) : null;
 }
 
-export function getReelByUrl(url: string): Reel | null {
-  const row = getDb().prepare("SELECT * FROM reels WHERE url = ?").get(url) as Row | undefined;
+export async function getReelByUrl(url: string): Promise<Reel | null> {
+  const [row] = await getDb().select().from(reels).where(eq(reels.url, url)).limit(1);
   return row ? mapReel(row) : null;
 }
 
-export function listReels(limit = 50, status?: ReelStatus): Reel[] {
+export async function listReels(limit = 50, status?: ReelStatus): Promise<Reel[]> {
   const rows = status
-    ? (getDb().prepare("SELECT * FROM reels WHERE status = ? ORDER BY created_at DESC LIMIT ?").all(status, limit) as Row[])
-    : (getDb().prepare("SELECT * FROM reels ORDER BY created_at DESC LIMIT ?").all(limit) as Row[]);
+    ? await getDb()
+        .select()
+        .from(reels)
+        .where(eq(reels.status, status))
+        .orderBy(desc(reels.createdAt))
+        .limit(limit)
+    : await getDb().select().from(reels).orderBy(desc(reels.createdAt)).limit(limit);
   return rows.map(mapReel);
 }
 
-export function libraryStats(): {
+export async function libraryStats(): Promise<{
   total: number;
   ready: number;
   processing: number;
   needsTranscript: number;
   topics: { topic: string; count: number }[];
   minuteCount: number;
-} {
-  const db = getDb();
-  const row = db
-    .prepare(
-      `SELECT COUNT(*) AS total,
-        SUM(CASE WHEN status = 'ready' THEN 1 ELSE 0 END) AS ready,
-        SUM(CASE WHEN status IN ('processing','queued') THEN 1 ELSE 0 END) AS processing,
-        SUM(CASE WHEN status = 'needs_transcript' THEN 1 ELSE 0 END) AS needs_transcript,
-        COALESCE(SUM(duration), 0) AS seconds
-      FROM reels`,
-    )
-    .get() as Row;
-  const topicRows = db
-    .prepare(
-      `SELECT topics FROM reels WHERE status = 'ready' AND topics IS NOT NULL AND topics != ''`,
-    )
-    .all() as Row[];
+}> {
+  const [row] = await getDb()
+    .select({
+      total: sql<number>`count(*)::int`,
+      ready: sql<number>`(count(*) filter (where ${reels.status} = 'ready'))::int`,
+      processing: sql<number>`(count(*) filter (where ${reels.status} in ('processing','queued')))::int`,
+      needsTranscript: sql<number>`(count(*) filter (where ${reels.status} = 'needs_transcript'))::int`,
+      seconds: sql<number>`coalesce(sum(${reels.duration}), 0)::double precision`,
+    })
+    .from(reels);
+
+  const topicRows = await getDb()
+    .select({ topics: reels.topics })
+    .from(reels)
+    .where(and(eq(reels.status, "ready"), sql`${reels.topics} is not null and ${reels.topics} != ''`));
+
   const counts = new Map<string, number>();
   for (const tr of topicRows) {
     for (const topic of String(tr.topics).split(",")) {
@@ -335,12 +248,13 @@ export function libraryStats(): {
       if (clean) counts.set(clean, (counts.get(clean) ?? 0) + 1);
     }
   }
+
   return {
-    total: Number(row.total ?? 0),
-    ready: Number(row.ready ?? 0),
-    processing: Number(row.processing ?? 0),
-    needsTranscript: Number(row.needs_transcript ?? 0),
-    minuteCount: Math.round(Number(row.seconds ?? 0) / 60),
+    total: Number(row?.total ?? 0),
+    ready: Number(row?.ready ?? 0),
+    processing: Number(row?.processing ?? 0),
+    needsTranscript: Number(row?.needsTranscript ?? 0),
+    minuteCount: Math.round(Number(row?.seconds ?? 0) / 60),
     topics: [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 12)
@@ -348,56 +262,74 @@ export function libraryStats(): {
   };
 }
 
-export function ftsSearch(
+export async function ftsSearch(
   query: string,
   limit = 30,
   platform?: string,
-): { id: string; rank: number; snippet: string }[] {
+): Promise<{ id: string; rank: number; snippet: string }[]> {
   const tokens = query
     .toLowerCase()
     .match(/[a-z0-9][a-z0-9+#.-]{1,}/g)
-    ?.filter((t) => t.length > 1)
+    ?.map((token) => token.replace(/[^a-z0-9]/g, ""))
+    .filter((token) => token.length > 1)
     .slice(0, 12);
   if (!tokens?.length) return [];
-  const match = tokens.map((t) => `"${t.replace(/"/g, "")}"*`).join(" OR ");
-  const sql = `
-    SELECT r.id, bm25(reels_fts) AS rank,
-      snippet(reels_fts, 2, '<mark>', '</mark>', ' … ', 14) AS snippet
-    FROM reels_fts
-    JOIN reels r ON r.rowid = reels_fts.rowid
-    WHERE reels_fts MATCH ? AND r.status = 'ready'
-      ${platform ? "AND r.platform = ?" : ""}
-    ORDER BY rank LIMIT ?`;
-  const params: (string | number)[] = [match];
-  if (platform) params.push(platform);
-  params.push(limit);
-  const rows = getDb().prepare(sql).all(...params) as Row[];
+
+  const match = tokens.map((token) => `${token}:*`).join(" | ");
+  const vector = sql`to_tsvector('english', concat_ws(' ', ${reels.title}, ${reels.caption}, ${reels.transcript}, ${reels.visualSummary}, ${reels.author}, ${reels.topics}))`;
+  const tsQuery = sql`to_tsquery('english', ${match})`;
+  const rank = sql<number>`ts_rank_cd(${vector}, ${tsQuery})`;
+  const snippet = sql<string>`ts_headline('english', coalesce(${reels.transcript}, ${reels.caption}, ${reels.title}, ''), ${tsQuery}, 'StartSel=<mark>, StopSel=</mark>, MaxWords=28, MinWords=8')`;
+
+  const rows = await getDb()
+    .select({ id: reels.id, rank, snippet })
+    .from(reels)
+    .where(
+      and(
+        eq(reels.status, "ready"),
+        sql`${vector} @@ ${tsQuery}`,
+        platform ? eq(reels.platform, platform) : undefined,
+      ),
+    )
+    .orderBy(sql`${rank} desc`)
+    .limit(limit);
+
   return rows.map((row) => ({
-    id: String(row.id),
+    id: row.id,
     rank: Number(row.rank),
-    snippet: String(row.snippet ?? ""),
+    snippet: row.snippet ?? "",
   }));
 }
 
-export function reelsWithEmbeddings(platform?: string): {
+export async function reelsWithEmbeddings(platform?: string): Promise<{
   id: string;
-  embedding: Uint8Array;
+  embedding: Float32Array;
   model: string | null;
-}[] {
-  const sql = `SELECT id, embedding, embedding_model FROM reels WHERE status = 'ready' AND embedding IS NOT NULL ${
-    platform ? "AND platform = ?" : ""
-  }`;
-  const params = platform ? [platform] : [];
-  const rows = getDb().prepare(sql).all(...params) as Row[];
+}[]> {
+  const rows = await getDb()
+    .select({
+      id: reels.id,
+      embedding: reels.embedding,
+      model: reels.embeddingModel,
+    })
+    .from(reels)
+    .where(
+      and(
+        eq(reels.status, "ready"),
+        sql`${reels.embedding} is not null`,
+        platform ? eq(reels.platform, platform) : undefined,
+      ),
+    );
+
   return rows.map((row) => ({
-    id: String(row.id),
-    embedding: row.embedding as Uint8Array,
-    model: (row.embedding_model as string) ?? null,
+    id: row.id,
+    embedding: new Float32Array(row.embedding ?? []),
+    model: row.model,
   }));
 }
 
-export function setTranscriptAndQueue(id: string, transcript: string, source = "manual") {
-  updateReel(id, {
+export async function setTranscriptAndQueue(id: string, transcript: string, source = "manual") {
+  await updateReel(id, {
     transcript,
     transcript_source: source,
     status: "processing",
@@ -405,74 +337,89 @@ export function setTranscriptAndQueue(id: string, transcript: string, source = "
   });
 }
 
-export function createJob(reelId: string, steps: JobStep[]): Job {
+export async function createJob(reelId: string, steps: JobStep[]): Promise<Job> {
   const id = crypto.randomUUID();
   const ts = now();
-  getDb()
-    .prepare(
-      "INSERT INTO jobs (id, reel_id, status, stage, steps_json, error, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
-    )
-    .run(id, reelId, "running", steps[0]?.key ?? "queued", JSON.stringify(steps), null, ts, ts);
-  return getJob(id) as Job;
+  await getDb().insert(jobs).values({
+    id,
+    reelId,
+    status: "running",
+    stage: steps[0]?.key ?? "queued",
+    steps,
+    error: null,
+    createdAt: ts,
+    updatedAt: ts,
+  });
+  const job = await getJob(id);
+  if (!job) throw new Error("Failed to create job");
+  return job;
 }
 
-export function updateJob(
+export async function updateJob(
   id: string,
   patch: { status?: Job["status"]; stage?: string; steps?: JobStep[]; error?: string | null },
-) {
-  const current = getJob(id);
+): Promise<void> {
+  const current = await getJob(id);
   if (!current) return;
-  const next = {
-    status: patch.status ?? current.status,
-    stage: patch.stage ?? current.stage,
-    steps: patch.steps ?? current.steps,
-    error: patch.error === undefined ? current.error : patch.error,
-  };
-  getDb()
-    .prepare("UPDATE jobs SET status = ?, stage = ?, steps_json = ?, error = ?, updated_at = ? WHERE id = ?")
-    .run(next.status, next.stage, JSON.stringify(next.steps), next.error, now(), id);
+  await getDb()
+    .update(jobs)
+    .set({
+      status: patch.status ?? current.status,
+      stage: patch.stage ?? current.stage,
+      steps: patch.steps ?? current.steps,
+      error: patch.error === undefined ? current.error : patch.error,
+      updatedAt: now(),
+    })
+    .where(eq(jobs.id, id));
 }
 
-export function getJob(id: string): Job | null {
-  const row = getDb().prepare("SELECT * FROM jobs WHERE id = ?").get(id) as Row | undefined;
+export async function getJob(id: string): Promise<Job | null> {
+  const [row] = await getDb().select().from(jobs).where(eq(jobs.id, id)).limit(1);
   if (!row) return null;
   return {
-    id: String(row.id),
-    reel_id: String(row.reel_id),
-    status: row.status as Job["status"],
-    stage: String(row.stage),
-    steps: parseJson<JobStep[]>(row.steps_json, []),
-    error: (row.error as string) ?? null,
-    created_at: String(row.created_at),
-    updated_at: String(row.updated_at),
+    id: row.id,
+    reel_id: row.reelId,
+    status: row.status,
+    stage: row.stage,
+    steps: row.steps,
+    error: row.error,
+    created_at: iso(row.createdAt),
+    updated_at: iso(row.updatedAt),
   };
 }
 
-export function latestJobForReel(reelId: string): Job | null {
-  const row = getDb()
-    .prepare("SELECT * FROM jobs WHERE reel_id = ? ORDER BY created_at DESC LIMIT 1")
-    .get(reelId) as Row | undefined;
-  if (!row) return null;
-  return getJob(String(row.id));
+export async function latestJobForReel(reelId: string): Promise<Job | null> {
+  const [row] = await getDb()
+    .select({ id: jobs.id })
+    .from(jobs)
+    .where(eq(jobs.reelId, reelId))
+    .orderBy(desc(jobs.createdAt))
+    .limit(1);
+  return row ? getJob(row.id) : null;
 }
 
-export function saveResearch(reelId: string, result: ResearchResult) {
-  getDb()
-    .prepare(
-      "INSERT INTO research (reel_id, result_json, created_at) VALUES (?,?,?) ON CONFLICT(reel_id) DO UPDATE SET result_json = excluded.result_json, created_at = excluded.created_at",
-    )
-    .run(reelId, JSON.stringify(result), now());
+export async function saveResearch(reelId: string, result: ResearchResult): Promise<void> {
+  const ts = now();
+  await getDb()
+    .insert(research)
+    .values({ reelId, result, createdAt: ts })
+    .onConflictDoUpdate({
+      target: research.reelId,
+      set: { result, createdAt: ts },
+    });
 }
 
-export function getResearch(reelId: string): ResearchResult | null {
-  const row = getDb().prepare("SELECT result_json FROM research WHERE reel_id = ?").get(reelId) as
-    | Row
-    | undefined;
-  return row ? parseJson<ResearchResult>(row.result_json, null as unknown as ResearchResult) : null;
+export async function getResearch(reelId: string): Promise<ResearchResult | null> {
+  const [row] = await getDb()
+    .select({ result: research.result })
+    .from(research)
+    .where(eq(research.reelId, reelId))
+    .limit(1);
+  return row?.result ?? null;
 }
 
-export function getProfile(): Profile {
-  const row = getDb().prepare("SELECT * FROM profile WHERE id = 1").get() as Row | undefined;
+export async function getProfile(): Promise<Profile> {
+  const [row] = await getDb().select().from(profile).where(eq(profile.id, 1)).limit(1);
   if (!row) {
     const empty: Profile = {
       handle: "",
@@ -484,48 +431,68 @@ export function getProfile(): Profile {
       goal: "",
       updated_at: now(),
     };
-    saveProfile(empty);
+    await saveProfile(empty);
     return empty;
   }
   return {
-    handle: String(row.handle ?? ""),
-    niche: String(row.niche ?? ""),
-    audience: String(row.audience ?? ""),
-    pillars: parseJson<string[]>(row.pillars_json, []),
-    voice: String(row.voice ?? ""),
-    avoid: String(row.avoid ?? ""),
-    goal: String(row.goal ?? ""),
-    updated_at: String(row.updated_at),
+    handle: row.handle,
+    niche: row.niche,
+    audience: row.audience,
+    pillars: row.pillars ?? [],
+    voice: row.voice,
+    avoid: row.avoid,
+    goal: row.goal,
+    updated_at: iso(row.updatedAt),
   };
 }
 
-export function saveProfile(profile: Omit<Profile, "updated_at">) {
-  getDb()
-    .prepare(
-      `INSERT INTO profile (id, handle, niche, audience, pillars_json, voice, avoid, goal, updated_at)
-       VALUES (1,?,?,?,?,?,?,?,?)
-       ON CONFLICT(id) DO UPDATE SET handle=excluded.handle, niche=excluded.niche, audience=excluded.audience,
-         pillars_json=excluded.pillars_json, voice=excluded.voice, avoid=excluded.avoid, goal=excluded.goal,
-         updated_at=excluded.updated_at`,
-    )
-    .run(
-      profile.handle,
-      profile.niche,
-      profile.audience,
-      JSON.stringify(profile.pillars),
-      profile.voice,
-      profile.avoid,
-      profile.goal,
-      now(),
-    );
+export async function saveProfile(input: Omit<Profile, "updated_at">): Promise<void> {
+  const ts = now();
+  await getDb()
+    .insert(profile)
+    .values({
+      id: 1,
+      handle: input.handle,
+      niche: input.niche,
+      audience: input.audience,
+      pillars: input.pillars,
+      voice: input.voice,
+      avoid: input.avoid,
+      goal: input.goal,
+      updatedAt: ts,
+    })
+    .onConflictDoUpdate({
+      target: profile.id,
+      set: {
+        handle: input.handle,
+        niche: input.niche,
+        audience: input.audience,
+        pillars: input.pillars,
+        voice: input.voice,
+        avoid: input.avoid,
+        goal: input.goal,
+        updatedAt: ts,
+      },
+    });
 }
 
-export function hydrateSearchHits(
-  hits: { id: string; score: number; keyword_rank?: number | null; vector_score?: number | null; snippet?: string | null; reason?: string | null }[],
-): SearchHit[] {
+export async function deleteReel(id: string): Promise<void> {
+  await getDb().delete(reels).where(eq(reels.id, id));
+}
+
+export async function hydrateSearchHits(
+  hits: {
+    id: string;
+    score: number;
+    keyword_rank?: number | null;
+    vector_score?: number | null;
+    snippet?: string | null;
+    reason?: string | null;
+  }[],
+): Promise<SearchHit[]> {
   const results: SearchHit[] = [];
   for (const hit of hits) {
-    const reel = getReel(hit.id);
+    const reel = await getReel(hit.id);
     if (!reel) continue;
     results.push({
       reel,
@@ -540,6 +507,6 @@ export function hydrateSearchHits(
 }
 
 export function dataDir() {
-  ensureDataDir();
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
   return DATA_DIR;
 }

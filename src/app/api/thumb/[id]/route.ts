@@ -46,7 +46,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=86400" },
     });
   } catch {
-    const reel = getReel(id);
+    const reel = await getReel(id);
     if (!reel) return new Response("Not found", { status: 404 });
     return new Response(placeholder(reel.platform, reel.dna?.topic || reel.title || reel.caption || "untitled reel"), {
       headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=3600" },

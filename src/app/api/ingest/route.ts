@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Add a link or paste a transcript" }, { status: 400 });
   }
   try {
-    const result = startIngest(parsed.data);
+    const result = await startIngest(parsed.data);
     return Response.json(result, { status: result.existing ? 200 : 202 });
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 400 });

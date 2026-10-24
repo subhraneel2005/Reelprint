@@ -11,7 +11,7 @@ export default async function DiscoverPage({
 }) {
   const params = await searchParams;
   const status = aiStatus();
-  const stats = libraryStats();
+  const stats = await libraryStats();
   return (
     <DiscoverExplorer
       initialQuery={params.q ?? ""}

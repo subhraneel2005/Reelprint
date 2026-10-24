@@ -16,7 +16,8 @@ const bodySchema = z.object({
 });
 
 export async function GET() {
-  return Response.json({ profile: getProfile(), status: aiStatus() });
+  const profile = await getProfile();
+  return Response.json({ profile, status: aiStatus() });
 }
 
 export async function POST(request: Request) {
@@ -30,6 +31,6 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
-  saveProfile(parsed.data);
-  return Response.json({ profile: getProfile() });
+  await saveProfile(parsed.data);
+  return Response.json({ profile: await getProfile() });
 }

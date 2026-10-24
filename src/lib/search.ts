@@ -1,5 +1,4 @@
 import {
-  bytesToFloat32,
   cosine,
   embedText,
   localEmbedding,
@@ -33,7 +32,7 @@ export async function searchLibrary(options: {
   const platform = options.platform || undefined;
 
   if (!query) {
-    const hits = listReels(limit, "ready").map<SearchHit>((reel) => ({
+    const hits = (await listReels(limit, "ready")).map<SearchHit>((reel) => ({
       reel,
       score: 0,
       keyword_rank: null,
@@ -46,7 +45,7 @@ export async function searchLibrary(options: {
   const candidates = new Map<string, Candidate>();
 
   if (mode === "hybrid" || mode === "keyword") {
-    const keywordHits = ftsSearch(query, 40, platform);
+    const keywordHits = await ftsSearch(query, 40, platform);
     keywordHits.forEach((hit, index) => {
       const existing = candidates.get(hit.id) ?? {
         id: hit.id,
@@ -62,13 +61,13 @@ export async function searchLibrary(options: {
   }
 
   if (mode === "hybrid" || mode === "vector") {
-    const rows = reelsWithEmbeddings(platform);
+    const rows = await reelsWithEmbeddings(platform);
     if (rows.length) {
       const { embedding: queryVector, model: queryModel } = await embedText(query);
       const localQuery = localEmbedding(query);
       const scored: { id: string; score: number }[] = [];
       for (const row of rows) {
-        const stored = bytesToFloat32(row.embedding);
+        const stored = row.embedding;
         let vector: Float32Array | null = null;
         if (row.model === queryModel) vector = queryVector;
         else if (row.model === localEmbeddingModel) vector = localQuery;
@@ -77,23 +76,25 @@ export async function searchLibrary(options: {
         scored.push({ id: row.id, score: cosine(vector, stored) });
       }
       scored.sort((a, b) => b.score - a.score);
-      scored.slice(0, 40).forEach((row, index) => {
-        const existing = candidates.get(row.id) ?? {
-          id: row.id,
-          keywordRank: null,
-          vectorRank: null,
-          vectorScore: null,
-          snippet: null,
-        };
-        existing.vectorRank = index + 1;
-        existing.vectorScore = row.score;
-        if (!existing.snippet) {
-          const reel = getReel(row.id);
-          const text = reel?.transcript ?? reel?.caption ?? "";
-          existing.snippet = text.slice(0, 220);
-        }
-        candidates.set(row.id, existing);
-      });
+      await Promise.all(
+        scored.slice(0, 40).map(async (row, index) => {
+          const existing = candidates.get(row.id) ?? {
+            id: row.id,
+            keywordRank: null,
+            vectorRank: null,
+            vectorScore: null,
+            snippet: null,
+          };
+          existing.vectorRank = index + 1;
+          existing.vectorScore = row.score;
+          if (!existing.snippet) {
+            const reel = await getReel(row.id);
+            const text = reel?.transcript ?? reel?.caption ?? "";
+            existing.snippet = text.slice(0, 220);
+          }
+          candidates.set(row.id, existing);
+        }),
+      );
     }
   }
 
@@ -113,20 +114,22 @@ export async function searchLibrary(options: {
     .slice(0, Math.max(limit, 24));
 
   if (mode === "hybrid" && options.rerankResults !== false && fused.length > 1) {
-    const items = fused.slice(0, 15).map((candidate) => {
-      const reel = getReel(candidate.id);
-      return {
-        id: candidate.id,
-        text: [
-          reel?.title,
-          reel?.caption?.slice(0, 300),
-          reel?.transcript?.slice(0, 900),
-          reel?.dna ? `topic: ${reel.dna.topic}; format: ${reel.dna.format}; hook: ${reel.dna.hook}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n"),
-      };
-    });
+    const items = await Promise.all(
+      fused.slice(0, 15).map(async (candidate) => {
+        const reel = await getReel(candidate.id);
+        return {
+          id: candidate.id,
+          text: [
+            reel?.title,
+            reel?.caption?.slice(0, 300),
+            reel?.transcript?.slice(0, 900),
+            reel?.dna ? `topic: ${reel.dna.topic}; format: ${reel.dna.format}; hook: ${reel.dna.hook}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        };
+      }),
+    );
     const order = await rerank(query, items);
     if (order) {
       const reasons = new Map(order.map((entry) => [entry.id, entry.reason]));
@@ -134,7 +137,7 @@ export async function searchLibrary(options: {
       const rest = fused.filter((candidate) => !reasons.has(candidate.id));
       fused.length = 0;
       fused.push(...ranked, ...rest);
-      const hits = hydrateSearchHits(
+      const hits = await hydrateSearchHits(
         fused.slice(0, limit).map((candidate) => ({
           id: candidate.id,
           score: candidate.score,
@@ -148,7 +151,7 @@ export async function searchLibrary(options: {
     }
   }
 
-  const hits = hydrateSearchHits(
+  const hits = await hydrateSearchHits(
     fused.slice(0, limit).map((candidate) => ({
       id: candidate.id,
       score: candidate.score,
@@ -160,16 +163,16 @@ export async function searchLibrary(options: {
   return { hits, mode, took: Date.now() - started };
 }
 
-export function similarTo(reel: Reel, limit = 8): SearchHit[] {
+export async function similarTo(reel: Reel, limit = 8): Promise<SearchHit[]> {
   if (!reel.embedding_model) return [];
-  const rows = reelsWithEmbeddings(reel.platform);
+  const rows = await reelsWithEmbeddings(reel.platform);
   const target = rows.find((row) => row.id === reel.id);
   if (!target) return [];
-  const targetVector = bytesToFloat32(target.embedding);
+  const targetVector = target.embedding;
   const scored = rows
     .filter((row) => row.id !== reel.id)
-    .map((row) => ({ id: row.id, score: cosine(targetVector, bytesToFloat32(row.embedding)) }))
+    .map((row) => ({ id: row.id, score: cosine(targetVector, row.embedding) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
-  return hydrateSearchHits(scored.map((row) => ({ id: row.id, score: row.score })));
+  return await hydrateSearchHits(scored.map((row) => ({ id: row.id, score: row.score })));
 }

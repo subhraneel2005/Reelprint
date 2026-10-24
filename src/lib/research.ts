@@ -64,7 +64,7 @@ export async function reverseEngineer(
   reelId: string,
   refresh = false,
 ): Promise<{ result: ResearchResult; similar: YouTubeHit[]; cached: boolean; warning?: string }> {
-  const reel = getReel(reelId);
+  const reel = await getReel(reelId);
   if (!reel) throw new Error("Reel not found");
   if (!reel.transcript && !reel.caption) {
     throw new Error("This reel has no transcript yet. Add one before researching it.");
@@ -79,19 +79,19 @@ export async function reverseEngineer(
   }
 
   if (!refresh) {
-    const cached = getResearch(reelId);
+    const cached = await getResearch(reelId);
     if (cached) return { result: cached, similar, cached: true, warning: similarWarning || undefined };
   }
 
-  const profile = getProfile();
+  const profile = await getProfile();
   try {
     const parsed = await chatJSON(researchPrompt(reel, profile, similar), researchSchema);
     const result = normaliseResearch(parsed);
-    saveResearch(reelId, result);
+    await saveResearch(reelId, result);
     return { result, similar, cached: false };
   } catch (error) {
     const result = fallbackResearch(reel);
-    saveResearch(reelId, result);
+    await saveResearch(reelId, result);
     return {
       result,
       similar,
@@ -101,6 +101,6 @@ export async function reverseEngineer(
   }
 }
 
-export function getCachedResearch(reelId: string) {
-  return getResearch(reelId);
+export async function getCachedResearch(reelId: string) {
+  return await getResearch(reelId);
 }

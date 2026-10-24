@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return Response.json({ error: "Paste at least a few sentences" }, { status: 400 });
   }
   try {
-    return Response.json(resumeWithTranscript(id, parsed.data.transcript));
+    return Response.json(await resumeWithTranscript(id, parsed.data.transcript));
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 400 });
   }
