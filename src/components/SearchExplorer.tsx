@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleAlert, Search, X } from "lucide-react";
 import type { Reel, SearchHit } from "@/lib/types";
 import { compactNumber, formatDuration, percent, platformLabel, timeAgo, truncate } from "@/lib/util";
-import { Empty, SectionHead, Tag } from "./Bits";
+import { Empty, PageHeader, SectionHead, Tag } from "./Bits";
 import { ReelCard } from "./ReelCard";
 import { Thumb } from "./Thumb";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,16 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-
-type Mode = "hybrid" | "keyword" | "vector";
-
-const MODES: { key: Mode; label: string }[] = [
-  { key: "hybrid", label: "Hybrid" },
-  { key: "keyword", label: "Keywords" },
-  { key: "vector", label: "Meaning" },
-];
 
 function safeSnippet(html: string) {
   return html
@@ -43,28 +34,21 @@ function safeSnippet(html: string) {
 
 export function SearchExplorer({
   initialReels,
-  topics,
   initialQuery,
   initialPlatform,
-  initialMode,
   counts,
 }: {
   initialReels: Reel[];
-  topics: { topic: string; count: number }[];
   initialQuery: string;
   initialPlatform: string;
-  initialMode: string;
   counts: { total: number; ready: number };
 }) {
   const [query, setQuery] = useState(initialQuery);
-  const [mode, setMode] = useState<Mode>(
-    ["hybrid", "keyword", "vector"].includes(initialMode) ? (initialMode as Mode) : "hybrid",
-  );
   const [platform, setPlatform] = useState(initialPlatform);
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [meta, setMeta] = useState<{ took: number; mode: Mode } | null>(null);
+  const [meta, setMeta] = useState<{ took: number } | null>(null);
   const firstRun = useRef(true);
 
   useEffect(() => {
@@ -76,7 +60,7 @@ export function SearchExplorer({
         setLoading(true);
         setError(null);
 
-        const params = new URLSearchParams({ q: clean, mode });
+        const params = new URLSearchParams({ q: clean, mode: "hybrid" });
         if (platform) params.set("platform", platform);
 
         fetch(`/api/search?${params.toString()}`, { cache: "no-store" })
@@ -85,12 +69,11 @@ export function SearchExplorer({
               hits?: SearchHit[];
               error?: string;
               took?: number;
-              mode?: Mode;
             };
             if (!response.ok) throw new Error(data.error ?? "Search failed");
 
             setHits(data.hits ?? []);
-            setMeta({ took: data.took ?? 0, mode: data.mode ?? mode });
+            setMeta({ took: data.took ?? 0 });
           })
           .catch((caught) => setError((caught as Error).message))
           .finally(() => setLoading(false));
@@ -100,7 +83,7 @@ export function SearchExplorer({
 
     firstRun.current = false;
     return () => clearTimeout(timer);
-  }, [query, mode, platform]);
+  }, [query, platform]);
 
   const filteredInitial = useMemo(
     () => (platform ? initialReels.filter((reel) => reel.platform === platform) : initialReels),
@@ -118,26 +101,22 @@ export function SearchExplorer({
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Archive</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="secondary">{counts.ready} ready</Badge>
-            <span>
-              {counts.total} sent · hybrid retrieval over your own reels
-            </span>
-          </div>
-        </div>
-        <p className="hidden max-w-sm text-right text-xs text-muted-foreground sm:block">
-          Keyword + vector, fused and reranked. Nothing from a feed scrape.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Archive"
+        title="Everything you've learned"
+        description="Search your own reels by topic, format, or a line you remember."
+        actions={
+          <Badge variant="secondary">
+            {counts.ready} of {counts.total} ready
+          </Badge>
+        }
+      />
 
-      <Card className="mt-5 gap-0 p-3">
-        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+      <Card className="mt-6 gap-0 p-3">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <Input
@@ -148,7 +127,7 @@ export function SearchExplorer({
               }}
               placeholder="Search topic, format or a line"
               aria-label="Search the archive"
-              className="h-11 pl-9 pr-10"
+              className="h-11 pl-10 pr-10"
             />
             {query && (
               <Button
@@ -164,56 +143,21 @@ export function SearchExplorer({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)}>
-              <TabsList className="grid w-full grid-cols-3">
-                {MODES.map((entry) => (
-                  <TabsTrigger key={entry.key} value={entry.key} className="text-xs">
-                    {entry.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
-            <Select
-              value={platform || "all"}
-              onValueChange={(value) => setPlatform(value === "all" ? "" : value)}
-            >
-              <SelectTrigger className="h-9 w-[140px]" aria-label="Filter by platform">
-                <SelectValue placeholder="All platforms" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All platforms</SelectItem>
-                <SelectItem value="instagram">Instagram</SelectItem>
-                <SelectItem value="youtube">YouTube</SelectItem>
-                <SelectItem value="tiktok">TikTok</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select
+            value={platform || "all"}
+            onValueChange={(value) => setPlatform(value === "all" ? "" : value)}
+          >
+            <SelectTrigger className="h-11 w-full sm:w-[150px]" aria-label="Filter by platform">
+              <SelectValue placeholder="All platforms" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All platforms</SelectItem>
+              <SelectItem value="instagram">Instagram</SelectItem>
+              <SelectItem value="youtube">YouTube</SelectItem>
+              <SelectItem value="tiktok">TikTok</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-
-        {topics.length > 0 && (
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t pt-2.5">
-            <span className="px-1 text-xs text-muted-foreground">Topics</span>
-            {topics.slice(0, 9).map((topic) => {
-              const active = query.toLowerCase() === topic.topic.toLowerCase();
-
-              return (
-                <Button
-                  key={topic.topic}
-                  type="button"
-                  variant={active ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-7 rounded-full px-2.5 text-xs"
-                  onClick={() => setQuery(topic.topic)}
-                >
-                  {topic.topic}
-                  <span className="text-muted-foreground">{topic.count}</span>
-                </Button>
-              );
-            })}
-          </div>
-        )}
       </Card>
 
       {searching ? (
@@ -223,8 +167,8 @@ export function SearchExplorer({
               {loading ? "Searching…" : `${hits?.length ?? 0} results`}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              {!loading && meta ? `${meta.mode} · ${meta.took} ms · ` : ""}
-              Query: {truncate(query, 44)}
+              {!loading && meta ? `${meta.took} ms · ` : ""}
+              {truncate(query, 44)}
             </span>
           </div>
 
@@ -342,10 +286,6 @@ function ResultRow({ hit }: { hit: SearchHit }) {
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {reel.dna?.format && <Tag tone="line">{reel.dna.format}</Tag>}
-          {hit.keyword_rank && <Tag tone="line">kw #{hit.keyword_rank}</Tag>}
-          {hit.vector_score !== null && hit.vector_score !== undefined && (
-            <Tag tone="line">cos {hit.vector_score.toFixed(2)}</Tag>
-          )}
           {reel.engagement?.like_rate != null && (
             <span className="ml-auto text-xs text-muted-foreground">
               {percent(reel.engagement.like_rate)} like rate

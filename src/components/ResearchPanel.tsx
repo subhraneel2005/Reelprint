@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 export function ResearchPanel({
@@ -68,49 +69,39 @@ export function ResearchPanel({
 
   if (!result) {
     return (
-      <Panel as="section" className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <Badge variant="secondary">Research brief</Badge>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Reverse engineer it.</h2>
-            <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              Why it holds attention, a beat-by-beat blueprint, live outliers on the same topic, and
-              six filmable ideas adapted to your profile.
-            </p>
-          </div>
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
-            <Sparkles className="size-5" aria-hidden />
-          </span>
-        </div>
+      <Panel as="section" className="p-6">
+        <span className="grid size-10 place-items-center rounded-xl bg-muted text-foreground">
+          <Sparkles className="size-4" aria-hidden />
+        </span>
+        <h2 className="mt-4 text-xl font-semibold tracking-tight">Reverse engineer this reel.</h2>
+        <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+          See why it works, how it is built, and six ideas shaped around your niche.
+        </p>
 
         {hasTranscript ? (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button type="button" onClick={() => run(false)} disabled={loading}>
-              {loading ? <Spinner className="size-4" /> : <Sparkles className="size-4" aria-hidden />}
-              {loading ? "Reading…" : "Reverse engineer this reel"}
-              {!loading && <ArrowRight className="size-4" aria-hidden />}
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              15–40 sec · uses YouTube live + your profile
-            </span>
-          </div>
+          <Button
+            type="button"
+            onClick={() => run(false)}
+            disabled={loading}
+            className="mt-5"
+          >
+            {loading ? <Spinner className="size-4" /> : <Sparkles className="size-4" aria-hidden />}
+            {loading ? "Reading…" : "Build the brief"}
+            {!loading && <ArrowRight className="size-4" aria-hidden />}
+          </Button>
         ) : (
-          <p className="mt-4 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            Add a transcript first.
-          </p>
+          <p className="mt-5 text-sm text-muted-foreground">Add a transcript to build the brief.</p>
         )}
 
         {loading && (
-          <div className="mt-4 flex items-center gap-2.5 rounded-lg border bg-muted/40 px-3 py-2.5">
+          <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <Spinner className="size-4 text-primary" />
-            <span className="text-sm text-muted-foreground">
-              Scoring live outliers and writing the brief…
-            </span>
-          </div>
+            Scoring live outliers and writing the brief…
+          </p>
         )}
 
         {error && (
-          <Alert variant="destructive" className="mt-3">
+          <Alert variant="destructive" className="mt-4">
             <CircleAlert aria-hidden />
             <AlertTitle>Research stopped</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -121,20 +112,11 @@ export function ResearchPanel({
   }
 
   return (
-    <Panel as="section">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">Research brief</h2>
-          {result.generated_at && (
-            <span className="text-xs text-muted-foreground">
-              {new Intl.DateTimeFormat("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              }).format(new Date(result.generated_at))}
-            </span>
-          )}
+    <Panel as="section" className="overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
+        <div>
+          <Badge variant="secondary">Research brief</Badge>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">How this reel works</h2>
         </div>
         <Button
           type="button"
@@ -149,117 +131,142 @@ export function ResearchPanel({
       </div>
 
       {warning && (
-        <Alert className="m-3">
+        <Alert className="mx-4 mb-2">
           <TriangleAlert aria-hidden />
-          <AlertTitle>Partial result</AlertTitle>
           <AlertDescription>{warning}</AlertDescription>
         </Alert>
       )}
 
       {error && (
-        <Alert variant="destructive" className="m-3">
+        <Alert variant="destructive" className="mx-4 mb-2">
           <CircleAlert aria-hidden />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="space-y-7 p-4 sm:p-5">
-        <div>
-          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Why it works
-          </h3>
-          <div className="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+      <Tabs defaultValue="brief" className="gap-0">
+        <div className="border-b px-5">
+          <TabsList variant="line" className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="brief" className="flex-none">
+              Brief
+            </TabsTrigger>
+            <TabsTrigger value="blueprint" className="flex-none">
+              Blueprint
+            </TabsTrigger>
+            <TabsTrigger value="ideas" className="flex-none">
+              Ideas
+            </TabsTrigger>
+            {similar.length > 0 && (
+              <TabsTrigger value="live" className="flex-none">
+                Live
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </div>
+
+        <TabsContent value="brief" className="mt-0 space-y-6 p-5">
+          <div className="grid gap-5 sm:grid-cols-2">
             {[
               ["Hook", result.why_it_works.hook],
               ["Retention", result.why_it_works.retention],
               ["Emotion", result.why_it_works.emotion],
               ["Format", result.why_it_works.format],
-              ["CTA", result.why_it_works.cta],
             ].map(([label, value]) => (
-              <div key={label} className={label === "CTA" ? "sm:col-span-2" : ""}>
+              <div key={label}>
                 <div className="text-xs font-medium text-primary">{label}</div>
-                <p className="mt-1 text-sm leading-relaxed">{value}</p>
+                <p className="mt-1.5 text-sm leading-relaxed">{value}</p>
               </div>
             ))}
           </div>
 
+          <div>
+            <div className="text-xs font-medium text-primary">CTA</div>
+            <p className="mt-1.5 text-sm leading-relaxed">{result.why_it_works.cta}</p>
+          </div>
+
           {result.why_it_works.evidence.length > 0 && (
-            <ul className="mt-4 space-y-1.5 rounded-lg border-l-2 border-primary/50 bg-muted/40 p-3">
+            <ul className="space-y-2 border-t pt-4">
               {result.why_it_works.evidence.map((item, index) => (
-                <li key={index} className="text-xs leading-relaxed text-muted-foreground">
+                <li key={index} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
+                  <span className="mt-2 size-1 shrink-0 rounded-full bg-primary" aria-hidden />
                   {item}
                 </li>
               ))}
             </ul>
           )}
-        </div>
 
-        <div className="border-t pt-6">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Shooting blueprint
-          </h3>
-          <ol className="mt-3 divide-y border-y">
-            {result.blueprint.beats.map((beat, index) => (
-              <li key={index} className="grid grid-cols-[54px_1fr] gap-3 py-3">
-                <span className="font-mono text-xs text-primary">
-                  {beat.time || `0${index + 1}`}
-                </span>
-                <div>
-                  <p className="text-sm font-medium leading-snug">{beat.beat}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{beat.why}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium">Do next</h3>
+            <ul className="mt-2 space-y-2">
+              {result.do_next.map((item, index) => (
+                <li key={index} className="flex gap-2 text-sm leading-relaxed">
+                  <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </TabsContent>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <TabsContent value="blueprint" className="mt-0 space-y-6 p-5">
+          <div>
+            <h3 className="text-sm font-medium">Beat by beat</h3>
+            <ol className="mt-3 divide-y border-y">
+              {result.blueprint.beats.map((beat, index) => (
+                <li key={index} className="grid grid-cols-[48px_1fr] gap-3 py-3">
+                  <span className="font-mono text-xs text-primary">{beat.time || `0${index + 1}`}</span>
+                  <div>
+                    <p className="text-sm font-medium leading-snug">{beat.beat}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{beat.why}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <div className="text-xs font-medium text-muted-foreground">Visual</div>
-              <p className="mt-1 text-sm leading-relaxed">{result.blueprint.visual_notes}</p>
+              <p className="mt-1.5 text-sm leading-relaxed">{result.blueprint.visual_notes}</p>
             </div>
             <div>
               <div className="text-xs font-medium text-muted-foreground">Audio</div>
-              <p className="mt-1 text-sm leading-relaxed">{result.blueprint.audio_notes}</p>
+              <p className="mt-1.5 text-sm leading-relaxed">{result.blueprint.audio_notes}</p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-lg border bg-muted/30 p-3">
+          <div className="rounded-xl bg-muted/50 p-4">
             <div className="text-xs font-medium text-muted-foreground">Caption formula</div>
-            <p className="mt-1 text-sm leading-relaxed">{result.blueprint.caption_formula}</p>
+            <p className="mt-1.5 text-sm leading-relaxed">{result.blueprint.caption_formula}</p>
           </div>
 
           {result.blueprint.hook_variants.length > 0 && (
-            <div className="mt-4">
-              <div className="text-xs font-medium text-muted-foreground">Hook variants</div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+            <div>
+              <h3 className="text-sm font-medium">Hook variants</h3>
+              <div className="mt-2 space-y-2">
                 {result.blueprint.hook_variants.map((hook, index) => (
-                  <span
-                    key={index}
-                    className="rounded-md border bg-muted/30 px-2.5 py-2 text-xs leading-snug"
-                  >
+                  <p key={index} className="rounded-lg border px-3 py-2 text-sm leading-snug">
                     {hook}
-                  </span>
+                  </p>
                 ))}
               </div>
             </div>
           )}
-        </div>
+        </TabsContent>
 
-        <div className="border-t pt-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Six ideas you can film
-            </h3>
-            <Badge variant="secondary">{result.ideas.length} scripts</Badge>
+        <TabsContent value="ideas" className="mt-0 p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-sm font-medium">Six ideas you can film</h3>
+            <span className="text-xs text-muted-foreground">{result.ideas.length} scripts</span>
           </div>
 
-          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {result.ideas.map((idea, index) => (
               <article
                 key={index}
                 className={cn(
-                  "rounded-lg border bg-background p-3.5",
-                  index === 0 && "border-primary/30 bg-accent/40",
+                  "rounded-xl border p-4",
+                  index === 0 && "border-primary/30 bg-primary/5",
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -279,77 +286,33 @@ export function ResearchPanel({
                   </Tag>
                 </div>
                 <h4 className="mt-2 text-sm font-medium leading-snug">{idea.title}</h4>
-                <p className="mt-1.5 rounded-r-md border-l-2 border-primary pl-2 text-sm leading-snug">
+                <p className="mt-2 border-l-2 border-primary pl-2.5 text-sm leading-snug">
                   “{idea.hook}”
                 </p>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{idea.angle}</p>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  <span className="font-medium text-foreground">Why fit · </span>
-                  {idea.why_it_fits}
-                </p>
-                <div className="mt-2.5">
-                  <Tag tone="line">{idea.format}</Tag>
-                </div>
+                <p className="mt-2 text-xs font-medium">{idea.format}</p>
               </article>
             ))}
           </div>
-        </div>
-
-        <div className="grid gap-6 border-t pt-6 sm:grid-cols-2">
-          <div>
-            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Do next
-            </h3>
-            <ul className="mt-2 space-y-2">
-              {result.do_next.map((item, index) => (
-                <li key={index} className="flex gap-2 text-sm leading-relaxed">
-                  <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Search further
-            </h3>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {result.discovery_queries.map((query) => (
-                <Button
-                  key={query}
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="h-auto whitespace-normal py-1.5 text-xs"
-                >
-                  <Link href={`/discover?q=${encodeURIComponent(query)}`}>
-                    <Compass className="size-3" aria-hidden />
-                    {query}
-                  </Link>
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
+        </TabsContent>
 
         {similar.length > 0 && (
-          <div className="border-t pt-6">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Live outliers on this topic
-              </h3>
-              <span className="text-xs text-muted-foreground">YouTube Shorts · scored</span>
+          <TabsContent value="live" className="mt-0 space-y-5 p-5">
+            <div>
+              <h3 className="text-sm font-medium">Live outliers on this topic</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                YouTube Shorts, ranked by pace and engagement.
+              </p>
             </div>
 
-            <div className="mt-2 divide-y">
+            <div className="divide-y">
               {similar.slice(0, 6).map((hit) => (
                 <a
                   key={hit.id}
                   href={hit.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="group flex items-center gap-3 rounded-md py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="group flex items-center gap-3 py-3"
                 >
                   <span className="w-7 shrink-0 font-mono text-xs text-primary">{hit.score}</span>
                   <div className="min-w-0 flex-1">
@@ -358,19 +321,26 @@ export function ResearchPanel({
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {hit.channel} · {compactNumber(hit.views)} views · {percent(hit.like_rate)} likes
-                      · {hit.outlier.toFixed(1)}× median pace
                     </p>
                   </div>
-                  <ArrowUpRight
-                    className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary"
-                    aria-hidden
-                  />
+                  <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                 </a>
               ))}
             </div>
-          </div>
+
+            <div className="flex flex-wrap gap-2 border-t pt-4">
+              {result.discovery_queries.slice(0, 3).map((query) => (
+                <Button key={query} asChild variant="outline" size="sm">
+                  <Link href={`/discover?q=${encodeURIComponent(query)}`}>
+                    <Compass className="size-3.5" aria-hidden />
+                    {query}
+                  </Link>
+                </Button>
+              ))}
+            </div>
+          </TabsContent>
         )}
-      </div>
+      </Tabs>
     </Panel>
   );
 }

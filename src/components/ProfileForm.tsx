@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save } from "lucide-react";
+import { ChevronDown, Save } from "lucide-react";
 import type { Profile } from "@/lib/types";
 import { useToast } from "@/components/ToastProvider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -81,13 +81,15 @@ export function ProfileForm({ initial }: { initial: Profile }) {
   return (
     <form onSubmit={save}>
       <Card className="gap-0 overflow-hidden p-0">
-        <div className="flex items-start justify-between gap-4 border-b p-4">
+        <div className="flex items-start justify-between gap-4 border-b p-5">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight">Creator profile</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Injected into every research brief.</p>
+            <h2 className="text-base font-medium">Your context</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Used in every brief. Start with the niche; refine later.
+            </p>
           </div>
           <div className="w-24 shrink-0 text-right">
-            <div className="text-xs text-muted-foreground">Completeness</div>
+            <div className="text-xs text-muted-foreground">Complete</div>
             <div className="mt-0.5 text-xl font-medium tabular-nums">{completeness}%</div>
             <Progress
               value={completeness}
@@ -97,26 +99,15 @@ export function ProfileForm({ initial }: { initial: Profile }) {
           </div>
         </div>
 
-        <div className="space-y-4 p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Instagram handle" htmlFor="profile-handle">
-              <Input
-                id="profile-handle"
-                value={form.handle}
-                onChange={(event) => set("handle", event.target.value)}
-                placeholder="yourhandle"
-                autoComplete="off"
-              />
-            </Field>
-            <Field label="Niche" htmlFor="profile-niche">
-              <Input
-                id="profile-niche"
-                value={form.niche}
-                onChange={(event) => set("niche", event.target.value)}
-                placeholder="AI, coding and building projects in public"
-              />
-            </Field>
-          </div>
+        <div className="space-y-4 p-5">
+          <Field label="Niche" htmlFor="profile-niche">
+            <Input
+              id="profile-niche"
+              value={form.niche}
+              onChange={(event) => set("niche", event.target.value)}
+              placeholder="AI, coding and building projects in public"
+            />
+          </Field>
 
           <Field label="Who is watching" htmlFor="profile-audience">
             <Input
@@ -136,35 +127,57 @@ export function ProfileForm({ initial }: { initial: Profile }) {
             />
           </Field>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Voice" htmlFor="profile-voice" hint="How you actually talk on camera">
-              <Textarea
-                id="profile-voice"
-                value={form.voice}
-                onChange={(event) => set("voice", event.target.value)}
-                rows={4}
-                placeholder="Direct, practical, no guru voice. Shows the work instead of claiming results."
+          <details className="group rounded-xl border">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium">
+              Voice, handle and guardrails
+              <ChevronDown
+                className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
+                aria-hidden
               />
-            </Field>
-            <Field label="Avoid" htmlFor="profile-avoid" hint="Formats or claims you do not want">
-              <Textarea
-                id="profile-avoid"
-                value={form.avoid}
-                onChange={(event) => set("avoid", event.target.value)}
-                rows={4}
-                placeholder="Clickbait income claims, reaction videos, dancing."
-              />
-            </Field>
-          </div>
+            </summary>
 
-          <Field label="What this month is for" htmlFor="profile-goal">
-            <Input
-              id="profile-goal"
-              value={form.goal}
-              onChange={(event) => set("goal", event.target.value)}
-              placeholder="Grow to 5k followers with build-in-public reels"
-            />
-          </Field>
+            <div className="space-y-4 border-t p-4">
+              <Field label="Instagram handle" htmlFor="profile-handle">
+                <Input
+                  id="profile-handle"
+                  value={form.handle}
+                  onChange={(event) => set("handle", event.target.value)}
+                  placeholder="yourhandle"
+                  autoComplete="off"
+                />
+              </Field>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Voice" htmlFor="profile-voice" hint="How you talk on camera">
+                  <Textarea
+                    id="profile-voice"
+                    value={form.voice}
+                    onChange={(event) => set("voice", event.target.value)}
+                    rows={4}
+                    placeholder="Direct, practical, no guru voice."
+                  />
+                </Field>
+                <Field label="Avoid" htmlFor="profile-avoid" hint="What you do not want">
+                  <Textarea
+                    id="profile-avoid"
+                    value={form.avoid}
+                    onChange={(event) => set("avoid", event.target.value)}
+                    rows={4}
+                    placeholder="Clickbait income claims, reaction videos."
+                  />
+                </Field>
+              </div>
+
+              <Field label="What this month is for" htmlFor="profile-goal">
+                <Input
+                  id="profile-goal"
+                  value={form.goal}
+                  onChange={(event) => set("goal", event.target.value)}
+                  placeholder="Grow to 5k followers with build-in-public reels"
+                />
+              </Field>
+            </div>
+          </details>
 
           {error && (
             <Alert variant="destructive">

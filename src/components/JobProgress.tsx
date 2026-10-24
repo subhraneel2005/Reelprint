@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  CheckCircle2,
-  Circle,
-  Loader2,
-  MinusCircle,
-  XCircle,
-} from "lucide-react";
+import { CircleAlert, Loader2 } from "lucide-react";
 import type { Job } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 
 export function JobProgress({
@@ -73,85 +68,59 @@ export function JobProgress({
     };
   }, [jobId]);
 
-  const steps = job?.steps ?? [];
-  const isError = job?.status === "error";
-  const isDone = job?.status === "done";
-
   if (!job) {
     return (
       <Card className="flex flex-row items-center gap-3 p-4">
         <Spinner className="size-5 text-primary" />
-        <div>
-          <p className="text-sm font-medium">Opening the job</p>
-          <p className="text-xs text-muted-foreground">Waiting for the first status update.</p>
-        </div>
+        <p className="text-sm text-muted-foreground">Opening the job…</p>
       </Card>
     );
   }
 
+  const steps = job.steps ?? [];
+  const done = steps.filter((step) => step.status === "done" || step.status === "skipped").length;
+  const current = steps.find((step) => step.status === "running") ?? steps[done];
+  const isError = job.status === "error";
+  const isDone = job.status === "done";
+  const value = steps.length ? Math.round((done / steps.length) * 100) : 0;
+
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <Badge variant={isError ? "destructive" : isDone ? "secondary" : "default"}>
-          {isError ? "Stopped" : isDone ? "Complete" : `Reading · ${job.stage ?? "queued"}`}
+    <Card className="gap-0 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {isError ? (
+            <CircleAlert className="size-4 text-destructive" aria-hidden />
+          ) : isDone ? (
+            <span className="size-2 rounded-full bg-emerald-600" aria-hidden />
+          ) : (
+            <Loader2 className="size-4 animate-spin text-primary" aria-hidden />
+          )}
+          <p className="text-sm font-medium">
+            {isError ? "Analysis stopped" : isDone ? "Ready" : (current?.label ?? "Reading")}
+          </p>
+        </div>
+        <Badge variant={isError ? "destructive" : "secondary"} className="tabular-nums">
+          {done}/{steps.length}
         </Badge>
-        <span className="text-xs text-muted-foreground">
-          {steps.filter((step) => step.status === "done" || step.status === "skipped").length}/
-          {steps.length} steps
-        </span>
       </div>
 
-      <Card className="gap-0 p-3">
-        <p className="text-sm font-medium">
-          {isError ? "Analysis stopped" : isDone ? "Analysis complete" : "Analysis in progress"}
+      {!isError && <Progress value={isDone ? 100 : value} className="mt-3 h-1.5" />}
+
+      {current?.detail && !isError && (
+        <p className="mt-2 text-xs text-muted-foreground">{current.detail}</p>
+      )}
+
+      {isError && (
+        <p className="mt-2 text-sm text-destructive">
+          {job.error ?? "Add a transcript to continue."}
         </p>
-        <ul className="mt-3 space-y-2" aria-live="polite">
-          {steps.map((step) => (
-            <li key={step.key} className="flex gap-2">
-              <StepIcon status={step.status} />
-              <div className="min-w-0">
-                <p className="text-sm leading-snug">{step.label}</p>
-                {step.detail && (
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    {step.status === "error" ? step.detail : step.detail}
-                  </p>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Card>
+      )}
 
       {failed && (
-        <p
-          role="alert"
-          className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
-        >
+        <p role="alert" className="mt-2 text-xs text-destructive">
           {failed}
         </p>
       )}
-    </div>
+    </Card>
   );
-}
-
-function StepIcon({ status }: { status: string }) {
-  const className = "mt-0.5 size-4 shrink-0";
-
-  if (status === "done") {
-    return <CheckCircle2 className={`${className} text-emerald-600`} aria-hidden />;
-  }
-
-  if (status === "running") {
-    return <Loader2 className={`${className} animate-spin text-primary`} aria-hidden />;
-  }
-
-  if (status === "error") {
-    return <XCircle className={`${className} text-destructive`} aria-hidden />;
-  }
-
-  if (status === "skipped") {
-    return <MinusCircle className={`${className} text-muted-foreground`} aria-hidden />;
-  }
-
-  return <Circle className={`${className} text-muted-foreground`} aria-hidden />;
 }

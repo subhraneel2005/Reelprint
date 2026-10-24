@@ -14,10 +14,15 @@ import { cn } from "@/lib/utils";
 
 const toneVariant = {
   line: "outline",
-  signal: "default",
+  signal: "destructive",
   tape: "secondary",
   ink: "outline",
   ok: "secondary",
+} as const;
+
+const toneClass = {
+  signal: "bg-destructive text-destructive-foreground",
+  ok: "bg-emerald-600 text-white",
 } as const;
 
 export type TagTone = keyof typeof toneVariant;
@@ -32,9 +37,45 @@ export function Tag({
   className?: string;
 }) {
   return (
-    <Badge variant={toneVariant[tone]} className={className}>
+    <Badge
+      variant={toneVariant[tone]}
+      className={cn(tone in toneClass ? toneClass[tone as keyof typeof toneClass] : undefined, className)}
+    >
       {children}
     </Badge>
+  );
+}
+
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+  className,
+}: {
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <header
+      className={cn("flex flex-wrap items-end justify-between gap-4", className)}
+    >
+      <div className="max-w-2xl">
+        {eyebrow && (
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            {eyebrow}
+          </div>
+        )}
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
+        {description && (
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
+        )}
+      </div>
+      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+    </header>
   );
 }
 
@@ -88,8 +129,8 @@ export function SectionHead({
   className?: string;
 }) {
   return (
-    <div className={cn("mb-3 flex items-baseline justify-between gap-3", className)}>
-      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+    <div className={cn("mb-4 flex items-baseline justify-between gap-3", className)}>
+      <h2 className="text-base font-semibold tracking-tight">{title}</h2>
       {aside && <span className="text-xs text-muted-foreground">{aside}</span>}
     </div>
   );
@@ -130,7 +171,7 @@ export function Empty({
   className?: string;
 }) {
   return (
-    <EmptyRoot className={cn("border bg-card", className)}>
+    <EmptyRoot className={cn("border bg-card p-10", className)}>
       <EmptyHeader>
         <EmptyMedia variant="icon">{icon ?? <Inbox className="size-4" />}</EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>

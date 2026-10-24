@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type { YouTubeHit } from "@/lib/types";
 import { compactNumber, percent, timeAgo } from "@/lib/util";
-import { Empty, Tag } from "./Bits";
+import { Empty, PageHeader, Tag } from "./Bits";
 import { AddToArchive } from "./AddToArchive";
 import { Thumb } from "./Thumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -104,47 +104,43 @@ export function DiscoverExplorer({
 
   return (
     <div>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Discover</h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Live YouTube Shorts, ranked by views per hour, like rate and recency relative to the
-            rest of the result set. High engagement only, not raw vanity counts.
-          </p>
-        </div>
-        <Badge variant={youtubeReady ? "secondary" : "destructive"}>
-          {youtubeReady ? "Live · YouTube API" : "YouTube key needed"}
-        </Badge>
-      </header>
+      <PageHeader
+        eyebrow="Live research"
+        title="Find what's working now"
+        description="Live YouTube Shorts, scored by pace and engagement—not raw view counts."
+        actions={
+          <Badge variant={youtubeReady ? "secondary" : "destructive"}>
+            {youtubeReady ? "Live" : "YouTube key needed"}
+          </Badge>
+        }
+      />
 
       {!youtubeReady && (
-        <Alert className="mt-4">
+        <Alert className="mt-5">
           <TriangleAlert aria-hidden />
-          <AlertTitle>Live discovery is off until a YouTube key is added.</AlertTitle>
+          <AlertTitle>Live discovery is off.</AlertTitle>
           <AlertDescription>
-            Create a free key in Google Cloud, enable YouTube Data API v3, then add{" "}
-            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">YOUTUBE_API_KEY=…</code>{" "}
-            to{" "}
-            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">.env.local</code> and
-            restart.
+            Add{" "}
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">YOUTUBE_API_KEY</code>{" "}
+            to your environment and restart.
           </AlertDescription>
         </Alert>
       )}
 
-      <Card className="mt-4 gap-0 p-3">
+      <Card className="mt-5 gap-0 p-3">
         <form
           onSubmit={(event) => {
             event.preventDefault();
             void run(query);
           }}
         >
-          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-end">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative flex-1">
               <Label htmlFor="discover-query" className="sr-only">
                 Search YouTube Shorts
               </Label>
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden
               />
               <Input
@@ -152,79 +148,36 @@ export function DiscoverExplorer({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="coding workflow, AI side project"
-                className="h-11 pl-9"
+                className="h-11 pl-10"
               />
-            </div>
-
-            <div className="hidden items-end gap-2 lg:flex">
-              <Filters
-                idPrefix="discover-desktop"
-                days={days}
-                setDays={setDays}
-                minViews={minViews}
-                setMinViews={setMinViews}
-              />
-            </div>
-
-            <div className="flex items-center gap-2 lg:hidden">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 flex-1"
-                onClick={() => setFiltersOpen(true)}
-              >
-                <SlidersHorizontal className="size-4" aria-hidden />
-                Filters
-                {filtersChanged && (
-                  <span className="size-1.5 rounded-full bg-primary" aria-label="Filters changed" />
-                )}
-              </Button>
-              <Button type="submit" disabled={loading || !youtubeReady} className="h-11">
-                {loading ? <Spinner className="size-4" /> : <Compass className="size-4" aria-hidden />}
-                Find
-              </Button>
             </div>
 
             <Button
-              type="submit"
-              disabled={loading || !youtubeReady}
-              className="hidden h-11 lg:inline-flex"
+              type="button"
+              variant="outline"
+              className="h-11 sm:w-auto"
+              onClick={() => setFiltersOpen(true)}
             >
+              <SlidersHorizontal className="size-4" aria-hidden />
+              Filters
+              {filtersChanged && (
+                <span className="size-1.5 rounded-full bg-primary" aria-label="Filters changed" />
+              )}
+            </Button>
+
+            <Button type="submit" disabled={loading || !youtubeReady} className="h-11">
               {loading ? <Spinner className="size-4" /> : <Compass className="size-4" aria-hidden />}
-              Find outliers
+              Find
             </Button>
           </div>
-
-          {topics.length > 0 && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t pt-2.5">
-              <span className="px-1 text-xs text-muted-foreground">From your archive</span>
-              {topics.slice(0, 7).map((topic) => (
-                <Button
-                  key={topic.topic}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 rounded-full px-2.5 text-xs"
-                  onClick={() => {
-                    setQuery(topic.topic);
-                    void run(topic.topic);
-                  }}
-                >
-                  {topic.topic}
-                </Button>
-              ))}
-            </div>
-          )}
         </form>
       </Card>
 
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
         <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Discovery filters</SheetTitle>
-            <SheetDescription>
-              Keep the search broad. The scorer finds the velocity inside the window.
-            </SheetDescription>
+            <SheetTitle>Search window</SheetTitle>
+            <SheetDescription>Keep it broad; the scorer finds the velocity.</SheetDescription>
           </SheetHeader>
           <div className="space-y-4 px-4">
             <Filters
@@ -238,7 +191,7 @@ export function DiscoverExplorer({
           </div>
           <SheetFooter>
             <Button type="button" className="h-11 w-full" onClick={() => setFiltersOpen(false)}>
-              Apply filters
+              Apply
             </Button>
           </SheetFooter>
         </SheetContent>
