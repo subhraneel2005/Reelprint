@@ -1,19 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { PwaRegister } from "@/components/PwaRegister";
 import { ToastProvider } from "@/components/ToastProvider";
 import { libraryStats } from "@/lib/db";
+import { cn } from "cn";
+import { GeistSans } from 'geist/font/sans';
+
 
 export const dynamic = "force-dynamic";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
 
 const description =
   "Save short videos, extract the ideas worth stealing, and turn them into scripts you can shoot today.";
@@ -57,7 +54,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#c2410c",
+  themeColor: "#0397FE",
   colorScheme: "light",
   interactiveWidget: "resizes-content",
 };
@@ -70,8 +67,8 @@ export default function RootLayout({
   const stats = libraryStats();
 
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-dvh bg-background font-sans text-foreground">
+    <html lang="en">
+      <body className={cn("min-h-dvh bg-background text-foreground", GeistSans.className)}>
         <ToastProvider>
           <AppShell stats={stats}>{children}</AppShell>
           <PwaRegister />
