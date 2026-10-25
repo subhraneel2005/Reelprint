@@ -84,7 +84,7 @@ export function normaliseUrl(url: string) {
 export function platformLabel(platform: string) {
   if (platform === "instagram") return "Instagram";
   if (platform === "youtube") return "YouTube";
-  if (platform === "tiktok") return "TikTok";
+  if (platform === "tiktok") return "Video";
   return "Web";
 }
 

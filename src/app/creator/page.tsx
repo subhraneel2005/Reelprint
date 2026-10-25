@@ -89,8 +89,8 @@ export default async function CreatorPage() {
           <Card className="p-5">
             <h2 className="text-sm font-medium">Link fetching</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              YouTube works out of the box. Instagram and TikTok may need a session, so the desk
-              asks for a transcript instead of failing silently.
+              YouTube works out of the box. Instagram may need a session, so the desk asks for a
+              transcript instead of failing silently.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Tag>SUPADATA_API_KEY</Tag>

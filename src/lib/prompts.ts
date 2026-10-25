@@ -76,7 +76,7 @@ export const scriptSchema = z.object({
 
 export function dnaPrompt(reel: Reel): { system: string; user: string } {
   return {
-    system: `You are a short-form content analyst. You reverse engineer Instagram Reels, TikTok videos and YouTube Shorts into a reusable content DNA.
+    system: `You are a short-form content analyst. You reverse engineer Instagram Reels and YouTube Shorts into a reusable content DNA.
 
 Return one JSON object with exactly these keys:
 topic, subtopic, hook, hook_type, format, format_detail, structure (array of {beat, purpose}), tools (array of strings), visual_style, audio_style, cta, target_audience, emotion, why_it_works (array of 3-5 specific observations), keywords (array of 5-10 search terms someone would use to find similar videos), pillars (array of 2-4 broader content pillars), pace, reusability (1-10).
