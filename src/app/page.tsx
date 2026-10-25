@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, AudioLines, ScanSearch, Sparkles } from "lucide-react";
 import { IngestForm } from "@/components/IngestForm";
+import { PlatformLogo } from "@/components/PlatformLogo";
 import { ReelCard } from "@/components/ReelCard";
 import { Empty, SectionHead } from "@/components/Bits";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +17,29 @@ export default async function Home() {
 
   return (
     <div className="space-y-16">
-      <section className="mx-auto max-w-2xl pt-4 text-center sm:pt-10">
+      <section className="relative mx-auto max-w-2xl pt-4 text-center sm:pt-10">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-8 -z-10 flex items-start justify-between px-1 sm:top-6 sm:px-1"
+          aria-hidden
+        >
+          <PlatformLogo
+            platform="instagram"
+            size={160}
+            priority
+            decorative
+            className="h-auto w-20 -rotate-12 opacity-70 sm:w-36"
+          />
+          <PlatformLogo
+            platform="youtube"
+            size={140}
+            priority
+            decorative
+            className="mt-16 h-auto w-16 rotate-12 opacity-70 sm:mt-20 sm:w-28"
+          />
+        </div>
+
         <Badge variant="secondary">Content research, without the scroll</Badge>
-        <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
+        <h1 className="mt-5 text-balance text-4xl font-semibold tracking-tight sm:text-6xl">
           Turn one reel into your next post.
         </h1>
         <p className="mx-auto mt-3 max-w-lg text-pretty text-base leading-relaxed text-muted-foreground">
