@@ -37,7 +37,7 @@ function placeholder(platform: string, topic: string) {
 </svg>`;
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!ID_PATTERN.test(id)) return new Response("Not found", { status: 404 });
   try {
@@ -48,6 +48,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   } catch {
     const reel = await getReel(id);
     if (!reel) return new Response("Not found", { status: 404 });
+
+    const card =
+      reel.platform === "instagram"
+        ? "/reel-thumbnail-card.webp"
+        : reel.platform === "youtube"
+          ? "/youtube-thumbnail-card.webp"
+          : null;
+    if (card) {
+      return Response.redirect(new URL(card, request.url), 307);
+    }
+
     return new Response(placeholder(reel.platform, reel.dna?.topic || reel.title || reel.caption || "untitled reel"), {
       headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=3600" },
     });
