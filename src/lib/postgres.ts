@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { normalizeDatabaseUrl } from "./database-url";
 
 type Db = ReturnType<typeof drizzle>;
 
@@ -15,7 +16,7 @@ export function getDb(): Db {
 
   if (!globalForDb.__reelprintPool) {
     globalForDb.__reelprintPool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: normalizeDatabaseUrl(process.env.DATABASE_URL),
       max: 5,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
