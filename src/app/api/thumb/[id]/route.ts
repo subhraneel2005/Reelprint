@@ -54,7 +54,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         ? "/reel-thumbnail-card.webp"
         : reel.platform === "youtube"
           ? "/youtube-thumbnail-card.webp"
-          : null;
+          : reel.platform === "other"
+            ? "/web-thumbnail-card.webp"
+            : null;
     if (card) {
       return Response.redirect(new URL(card, request.url), 307);
     }

@@ -18,7 +18,7 @@ export function Thumb({
   label?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const url = id ? `/api/thumb/${id}?v=cover4` : remote ?? "";
+  const url = id ? `/api/thumb/${id}?v=cover5` : remote ?? "";
   const showImage = Boolean(url) && !failed;
 
   return (

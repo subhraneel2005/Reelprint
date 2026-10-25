@@ -12,6 +12,11 @@ const LOGOS = {
     alt: "YouTube Shorts",
     className: "",
   },
+  other: {
+    src: "/web-icon.webp",
+    alt: "Web",
+    className: "",
+  },
 } as const;
 
 export function PlatformLogo({
