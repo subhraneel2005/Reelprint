@@ -12,6 +12,7 @@ import type { YouTubeHit } from "@/lib/types";
 import { compactNumber, percent, timeAgo } from "@/lib/util";
 import { Empty, PageHeader, Tag } from "./Bits";
 import { AddToArchive } from "./AddToArchive";
+import { PlatformLogo } from "./PlatformLogo";
 import { Thumb } from "./Thumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -269,7 +270,10 @@ export function DiscoverExplorer({
 
                     <div className="px-1 pb-1 pt-2.5">
                       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                        <span className="truncate">{hit.channel}</span>
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <PlatformLogo platform="youtube" size={14} decorative />
+                          <span className="truncate">{hit.channel}</span>
+                        </span>
                         <span className="shrink-0">{timeAgo(hit.published_at)}</span>
                       </div>
 

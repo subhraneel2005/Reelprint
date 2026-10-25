@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ArrowUpRight, CornerDownRight } from "lucide-react";
 import { LiveJob } from "@/components/LiveJob";
+import { PlatformLogo } from "@/components/PlatformLogo";
 import { ReelCard } from "@/components/ReelCard";
 import { ReelRecovery } from "@/components/ReelRecovery";
 import { ResearchPanel } from "@/components/ResearchPanel";
@@ -67,7 +68,10 @@ export default async function ReelPage({ params }: { params: Promise<{ id: strin
       <header className="mt-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">{platformLabel(reel.platform)}</span>
+            <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+              <PlatformLogo platform={reel.platform} size={15} decorative />
+              {platformLabel(reel.platform)}
+            </span>
             <span aria-hidden>/</span>
             <span>{reel.author ?? "Unknown creator"}</span>
             <span aria-hidden>/</span>

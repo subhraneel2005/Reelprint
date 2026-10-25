@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlatformLogo } from "./PlatformLogo";
 import { Thumb } from "./Thumb";
 import type { Reel } from "@/lib/types";
 import { compactNumber, formatDuration, percent, platformLabel, timeAgo, truncate } from "@/lib/util";
@@ -31,7 +32,8 @@ export function ReelCard({ reel, compact = false }: { reel: Reel; compact?: bool
             />
 
             <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2">
-              <Badge variant="secondary" className="bg-card/90">
+              <Badge variant="secondary" className="gap-1 bg-card/90 pl-1.5">
+                <PlatformLogo platform={reel.platform} size={14} decorative />
                 {platformLabel(reel.platform)}
               </Badge>
               {score !== null && score !== undefined && (

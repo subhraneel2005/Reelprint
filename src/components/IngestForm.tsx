@@ -11,8 +11,10 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { Job, Reel } from "@/lib/types";
-import { detectPlatform, platformLabel } from "@/lib/util";
+import { detectPlatform } from "@/lib/util";
+import { cn } from "@/lib/utils";
 import { JobProgress } from "./JobProgress";
+import { PlatformLogo } from "./PlatformLogo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -24,6 +26,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 type Mode = "link" | "transcript";
+
+const SUPPORTED_PLATFORMS = [
+  { key: "instagram", label: "Instagram" },
+  { key: "youtube", label: "YouTube Shorts" },
+] as const;
 
 const initialMetrics = { views: "", likes: "", comments: "", shares: "", followers: "" };
 
@@ -177,7 +184,7 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
                 <Label htmlFor="ingest-url" className="sr-only">
-                  Reel, Short or TikTok link
+                  Reel or Short link
                 </Label>
                 <Link2
                   className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -199,11 +206,27 @@ export function IngestForm({ defaultUrl = "" }: { defaultUrl?: string }) {
                 {!submitting && <ArrowRight className="size-4" aria-hidden />}
               </Button>
             </div>
-            <p className="mt-2 px-1 text-xs text-muted-foreground">
-              {detected && detected.platform !== "other"
-                ? `Detected ${platformLabel(detected.platform)}`
-                : "Instagram Reels, YouTube Shorts, and TikTok."}
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 px-1 text-xs text-muted-foreground">
+              <span className="mr-0.5">Works with</span>
+              {SUPPORTED_PLATFORMS.map((platform) => {
+                const active = detected?.platform === platform.key;
+
+                return (
+                  <span
+                    key={platform.key}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 transition-colors",
+                      active
+                        ? "border-primary/30 bg-primary/5 font-medium text-foreground"
+                        : "bg-muted/30",
+                    )}
+                  >
+                    <PlatformLogo platform={platform.key} size={15} decorative />
+                    {platform.label}
+                  </span>
+                );
+              })}
+            </div>
           </TabsContent>
 
           <TabsContent value="transcript" className="mt-0 space-y-3 p-3 pt-2">

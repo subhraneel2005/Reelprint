@@ -6,6 +6,7 @@ import { CircleAlert, Search, X } from "lucide-react";
 import type { Reel, SearchHit } from "@/lib/types";
 import { compactNumber, formatDuration, percent, platformLabel, timeAgo, truncate } from "@/lib/util";
 import { Empty, PageHeader, SectionHead, Tag } from "./Bits";
+import { PlatformLogo } from "./PlatformLogo";
 import { ReelCard } from "./ReelCard";
 import { Thumb } from "./Thumb";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -152,9 +153,18 @@ export function SearchExplorer({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All platforms</SelectItem>
-              <SelectItem value="instagram">Instagram</SelectItem>
-              <SelectItem value="youtube">YouTube</SelectItem>
-              <SelectItem value="tiktok">TikTok</SelectItem>
+              <SelectItem value="instagram">
+                <span className="flex items-center gap-2">
+                  <PlatformLogo platform="instagram" size={15} decorative />
+                  Instagram
+                </span>
+              </SelectItem>
+              <SelectItem value="youtube">
+                <span className="flex items-center gap-2">
+                  <PlatformLogo platform="youtube" size={15} decorative />
+                  YouTube
+                </span>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -263,7 +273,10 @@ function ResultRow({ hit }: { hit: SearchHit }) {
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{platformLabel(reel.platform)}</span>
+          <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+            <PlatformLogo platform={reel.platform} size={14} decorative />
+            {platformLabel(reel.platform)}
+          </span>
           <span aria-hidden>/</span>
           <span className="truncate">{reel.author ?? "Unknown"}</span>
           <span aria-hidden>/</span>
