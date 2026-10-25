@@ -123,16 +123,14 @@ export function ReelRecovery({
           </>
         )}
 
-        {hasTranscript && (
-          <Button type="button" onClick={retry} disabled={busy} variant="secondary" size="sm">
-            {busy ? (
-              <Spinner className="size-4" />
-            ) : (
-              <RotateCw className="size-4" aria-hidden />
-            )}
-            Retry DNA + index
-          </Button>
-        )}
+        <Button type="button" onClick={retry} disabled={busy} variant="secondary" size="sm">
+          {busy ? (
+            <Spinner className="size-4" />
+          ) : (
+            <RotateCw className="size-4" aria-hidden />
+          )}
+          {hasTranscript ? "Retry DNA + index" : "Retry the fetch"}
+        </Button>
 
         {message && (
           <p

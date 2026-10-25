@@ -15,6 +15,7 @@ import {
   getReelByUrl,
   insertReel,
   latestJobForReel,
+  touchJob,
   updateJob,
   updateReel,
 } from "./db";
@@ -29,7 +30,7 @@ import {
   TMP_DIR,
 } from "./media";
 import { dnaPrompt, dnaSchema, heuristicDna } from "./prompts";
-import type { Engagement, JobStep, Reel, ReelDna } from "./types";
+import type { Engagement, Job, JobStep, Reel, ReelDna } from "./types";
 import { detectPlatform, engagementLabel, normaliseUrl, truncate } from "./util";
 
 const INGEST_STEPS: JobStep[] = [
@@ -46,6 +47,31 @@ const ANALYSIS_STEPS: JobStep[] = [
   { key: "dna", label: "Extract the content DNA", status: "pending" },
   { key: "embed", label: "Index for search", status: "pending" },
 ];
+
+const JOB_STALE_MS = 90_000;
+const HEARTBEAT_MS = 15_000;
+
+export function isJobStale(job: Job | null): boolean {
+  if (!job || job.status !== "running") return false;
+  return Date.now() - new Date(job.updated_at).getTime() > JOB_STALE_MS;
+}
+
+function startHeartbeat(jobId: string) {
+  const timer = setInterval(() => {
+    void touchJob(jobId).catch(() => {});
+  }, HEARTBEAT_MS);
+  timer.unref?.();
+  return () => clearInterval(timer);
+}
+
+function stepsFor(input: IngestInput) {
+  const steps = INGEST_STEPS.map((step) => ({ ...step }));
+  if (input.transcript) {
+    setStep(steps, "download", "done", "Using your transcript");
+    setStep(steps, "transcribe", "done", "manual");
+  }
+  return steps;
+}
 
 export type IngestInput = {
   url?: string;
@@ -176,6 +202,7 @@ async function indexReel(reel: Reel, steps: JobStep[], jobId: string) {
 }
 
 async function analysePipeline(reelId: string, jobId: string, steps: JobStep[], startedFresh = false) {
+  const stopHeartbeat = startHeartbeat(jobId);
   try {
     const reel = await getReel(reelId);
     if (!reel) throw new Error("Reel not found");
@@ -207,6 +234,8 @@ async function analysePipeline(reelId: string, jobId: string, steps: JobStep[], 
       if (step.status === "pending") step.status = "skipped";
     }
     await updateJob(jobId, { status: "error", steps, error: message });
+  } finally {
+    stopHeartbeat();
   }
 }
 
@@ -216,6 +245,8 @@ async function runPipeline(reelId: string, jobId: string, input: IngestInput) {
 
   const reel = await getReel(reelId);
   if (!reel) return;
+
+  const stopHeartbeat = startHeartbeat(jobId);
 
   try {
     await updateReel(reelId, { status: "processing" });
@@ -446,23 +477,51 @@ async function runPipeline(reelId: string, jobId: string, input: IngestInput) {
     await updateReel(reelId, { status: "error", error: message });
     await updateJob(jobId, { status: "error", steps, error: message });
   } finally {
+    stopHeartbeat();
     await cleanTmp(join(TMP_DIR, reelId));
   }
 }
 
-export async function startIngest(
-  input: IngestInput,
-): Promise<{ reel: Reel; jobId: string; existing: boolean }> {
+export async function startIngest(input: IngestInput): Promise<{
+  reel: Reel;
+  jobId: string;
+  existing: boolean;
+  shouldRun: boolean;
+}> {
   const rawUrl = input.url?.trim() ?? "";
   if (!rawUrl && !input.transcript?.trim()) {
     throw new Error("Add a reel link or paste a transcript");
   }
   const url = rawUrl ? normaliseUrl(rawUrl) : `manual:${randomUUID()}`;
-  const { platform, externalId } = rawUrl ? detectPlatform(url) : { platform: "other" as const, externalId: null };
+  const { platform, externalId } = rawUrl
+    ? detectPlatform(url)
+    : { platform: "other" as const, externalId: null };
   const existing = await getReelByUrl(url);
+
   if (existing) {
     const job = await latestJobForReel(existing.id);
-    return { reel: existing, jobId: job?.id ?? "", existing: true };
+
+    if (job?.status === "running" && !isJobStale(job)) {
+      return { reel: existing, jobId: job.id, existing: true, shouldRun: false };
+    }
+
+    if (existing.status === "ready") {
+      return { reel: existing, jobId: job?.id ?? "", existing: true, shouldRun: false };
+    }
+
+    if (existing.status === "needs_transcript" && !input.transcript) {
+      return { reel: existing, jobId: job?.id ?? "", existing: true, shouldRun: false };
+    }
+
+    const steps = stepsFor(input);
+    await updateReel(existing.id, { status: "queued", error: null });
+    const freshJob = await createJob(existing.id, steps);
+    return {
+      reel: { ...existing, status: "queued", error: null },
+      jobId: freshJob.id,
+      existing: true,
+      shouldRun: true,
+    };
   }
 
   const id = randomUUID();
@@ -484,20 +543,18 @@ export async function startIngest(
     status: "queued",
   });
 
-  const steps = INGEST_STEPS.map((step) => ({ ...step }));
-  if (input.transcript) {
-    setStep(steps, "download", "done", "Using your transcript");
-    setStep(steps, "transcribe", "done", "manual");
-  }
-  const job = await createJob(id, steps);
-  void runPipeline(id, job.id, input);
-  return { reel, jobId: job.id, existing: false };
+  const job = await createJob(id, stepsFor(input));
+  return { reel, jobId: job.id, existing: false, shouldRun: true };
+}
+
+export async function runIngestPipeline(reelId: string, jobId: string, input: IngestInput) {
+  await runPipeline(reelId, jobId, input);
 }
 
 export async function resumeWithTranscript(
   reelId: string,
   transcript: string,
-): Promise<{ jobId: string }> {
+): Promise<{ jobId: string; reelId: string; steps: JobStep[]; full: boolean }> {
   const reel = await getReel(reelId);
   if (!reel) throw new Error("Reel not found");
   await updateReel(reelId, {
@@ -508,18 +565,35 @@ export async function resumeWithTranscript(
   });
   const steps = ANALYSIS_STEPS.map((step) => ({ ...step }));
   const job = await createJob(reelId, steps);
-  void analysePipeline(reelId, job.id, steps, true);
-  return { jobId: job.id };
+  return { jobId: job.id, reelId, steps, full: false };
 }
 
-export async function retryAnalysis(reelId: string): Promise<{ jobId: string }> {
+export async function retryAnalysis(
+  reelId: string,
+): Promise<{ jobId: string; reelId: string; steps: JobStep[]; full: boolean }> {
   const reel = await getReel(reelId);
   if (!reel) throw new Error("Reel not found");
-  await updateReel(reelId, { status: "processing", error: null });
-  const steps = ANALYSIS_STEPS.map((step) => ({ ...step }));
+  const full = !reel.transcript?.trim();
+  const steps = (full ? INGEST_STEPS : ANALYSIS_STEPS).map((step) => ({ ...step }));
+  await updateReel(reelId, {
+    status: full ? "queued" : "processing",
+    error: null,
+  });
   const job = await createJob(reelId, steps);
-  void analysePipeline(reelId, job.id, steps, true);
-  return { jobId: job.id };
+  return { jobId: job.id, reelId, steps, full };
+}
+
+export async function runPreparedPipeline(
+  reelId: string,
+  jobId: string,
+  steps: JobStep[],
+  full: boolean,
+) {
+  if (full) {
+    await runPipeline(reelId, jobId, {});
+    return;
+  }
+  await analysePipeline(reelId, jobId, steps, true);
 }
 
 export async function getJobStatus(jobId: string) {

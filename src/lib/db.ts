@@ -373,6 +373,10 @@ export async function updateJob(
     .where(eq(jobs.id, id));
 }
 
+export async function touchJob(id: string): Promise<void> {
+  await getDb().update(jobs).set({ updatedAt: now() }).where(eq(jobs.id, id));
+}
+
 export async function getJob(id: string): Promise<Job | null> {
   const [row] = await getDb().select().from(jobs).where(eq(jobs.id, id)).limit(1);
   if (!row) return null;
